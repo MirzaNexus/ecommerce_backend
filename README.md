@@ -31,6 +31,32 @@
 $ npm install
 ```
 
+# Database Migrations Commands
+
+## Build
+
+npm run build => always before migrations
+
+## Create Manual Migration
+
+npm run migration:create
+
+## Generate Migration from Entities
+
+npm run migration:generate -- -n <migration_name>
+
+## Run Pending Migrations
+
+npm run migration:run
+
+## Revert Last Migration
+
+npm run migration:revert
+
+## Show Migrations Status
+
+npm run migration:show
+
 ## Compile and run the project
 
 ```bash

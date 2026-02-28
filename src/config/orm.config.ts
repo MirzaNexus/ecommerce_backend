@@ -1,0 +1,16 @@
+export default () => ({
+  type: 'postgres' as const,
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+  username: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  entities: ['dist/**/*.entity.js'],
+  migrations: ['dist/database/migrations/*.js'],
+  // Production-safe synchronize
+  synchronize:
+    process.env.DB_SYNCHRONIZE === 'true' &&
+    process.env.NODE_ENV !== 'production',
+  logging:
+    process.env.DB_LOGGING === 'true' && process.env.NODE_ENV !== 'production',
+});
