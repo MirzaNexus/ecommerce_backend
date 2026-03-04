@@ -39,11 +39,11 @@ npm run build => always before migrations
 
 ## Create Manual Migration
 
-npm run migration:create
+npm run migration:create -- CreateUsersTable
 
 ## Generate Migration from Entities
 
-npm run migration:generate -- -n <migration_name>
+npm run migration:generate -- src/database/migrations/CreateUserAndUserAddresses
 
 ## Run Pending Migrations
 
