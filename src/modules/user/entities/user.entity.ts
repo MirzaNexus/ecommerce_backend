@@ -7,9 +7,11 @@ import {
   DeleteDateColumn,
   Index,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
 import { UserAddress } from './user-address.entity';
+import { Credential } from 'src/modules/auth/entities/credential.entity';
 
 export enum UserStatus {
   ACTIVE = 'active',
@@ -81,6 +83,9 @@ export class User {
 
   @OneToMany(() => UserAddress, (address) => address.user)
   addresses: UserAddress[];
+
+  @OneToOne(() => Credential, (credential) => credential.user)
+  credential: Credential;
 
   @Expose()
   get fullName(): string {
