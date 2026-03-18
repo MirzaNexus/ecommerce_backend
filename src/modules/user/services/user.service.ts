@@ -2,19 +2,22 @@ import {
   ConflictException,
   NotFoundException,
   Injectable,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { RegisterBuyerDto } from '../dto/create-user.dto';
 import { UserRepository } from '../repositories/user.repository';
-import { AuthService } from 'src/modules/auth/auth.service';
+import { AuthService } from 'src/modules/auth/services/auth.service';
 import { UpdateProfileDto } from '../dto/update-user.dto';
+import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly userRepo: UserRepository,
-    private readonly authService: AuthService,
+    @Inject(forwardRef(() => AuthService)) private authService: AuthService,
   ) {}
 
   async registerBuyer(dto: RegisterBuyerDto) {
@@ -47,6 +50,13 @@ export class UserService {
         },
       };
     });
+  }
+
+  async findByEmail(email: string, manager?: EntityManager) {
+    return this.userRepo.findByEmail(email, manager);
+  }
+  async findById(id: string, manager?: EntityManager) {
+    return this.userRepo.findById(id);
   }
 
   async getMyProfile(userId: string) {

@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   OneToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from 'src/modules/user/entities/user.entity';
 
@@ -14,11 +15,15 @@ export class Credential {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Index({ unique: true })
+  @Column({ type: 'uuid' })
   userId: string;
 
-  @Column()
+  @Column({ type: 'varchar', length: 255 })
   passwordHash: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  password_updated_at: Date;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

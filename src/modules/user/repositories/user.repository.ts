@@ -21,8 +21,9 @@ export class UserRepository {
     return usedManager.save(user);
   }
 
-  async findById(id: string) {
-    return this.repo.findOne({ where: { id } });
+  async findById(id: string, manager?: EntityManager) {
+    const usedManager = manager ?? this.repo.manager;
+    return usedManager.findOne(User, { where: { id } });
   }
 
   async updateProfile(id: string, data: Partial<User>) {

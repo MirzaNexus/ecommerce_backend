@@ -12,11 +12,12 @@ import { UserAddress } from './entities/user-address.entity';
 import { UserRepository } from './repositories/user.repository';
 import { AuthModule } from '../auth/auth.module';
 import { AddressRepository } from './repositories/AddressRepository';
+import { forwardRef } from '@nestjs/common';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Credential, UserAddress]),
-    AuthModule,
+    forwardRef(() => AuthModule),
   ],
   controllers: [UserController, AdminUsersController, AddressController],
   providers: [
@@ -26,5 +27,6 @@ import { AddressRepository } from './repositories/AddressRepository';
     AddressTsService,
     AdminUserService,
   ],
+  exports: [UserService],
 })
 export class UserModule {}

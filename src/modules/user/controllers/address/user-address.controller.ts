@@ -13,7 +13,12 @@ import {
 import { AddressTsService } from '../../services/address/user-address.service';
 import { CreateAddressDto } from '../../dto/create-user-address.dto';
 import { UpdateAddressDto } from '../../dto/update-user-address.dto';
+import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guards';
+import { RolesGuard } from 'src/modules/auth/guards/role.guard';
+import { Roles } from 'src/modules/auth/decorators/roles.decorator';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('Buyer')
 @Controller('users/me/addresses')
 export class AddressController {
   constructor(private readonly addressService: AddressTsService) {}

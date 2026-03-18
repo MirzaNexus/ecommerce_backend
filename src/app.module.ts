@@ -7,7 +7,6 @@ import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
-
 @Module({
   imports: [
     ConfigModule,
