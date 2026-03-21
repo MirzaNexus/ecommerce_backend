@@ -16,13 +16,13 @@ import { UpdateAddressDto } from '../../dto/update-user-address.dto';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guards';
 import { RolesGuard } from 'src/modules/auth/guards/role.guard';
 import { Roles } from 'src/modules/auth/decorators/roles.decorator';
+import { UserRole } from '../../entities/user.entity';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('Buyer')
+@Roles(UserRole.BUYER)
 @Controller('users/me/addresses')
 export class AddressController {
   constructor(private readonly addressService: AddressTsService) {}
-
   @Post()
   async createAddress(@Req() req: any, @Body() dto: CreateAddressDto) {
     const userId = req.user?.id;

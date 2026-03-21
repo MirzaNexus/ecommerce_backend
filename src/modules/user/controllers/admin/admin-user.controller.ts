@@ -12,9 +12,10 @@ import { UpdateUserStatusDto } from '../../dto/UpdateUserStatusDto';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guards';
 import { RolesGuard } from 'src/modules/auth/guards/role.guard';
 import { Roles } from 'src/modules/auth/decorators/roles.decorator';
+import { UserRole } from '../../entities/user.entity';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('Admin')
+@Roles(UserRole.ADMIN)
 @Controller('admin/users')
 export class AdminUsersController {
   constructor(private adminUserService: AdminUserService) {}

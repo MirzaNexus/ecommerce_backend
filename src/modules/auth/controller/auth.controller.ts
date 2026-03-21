@@ -8,7 +8,6 @@ import {
   RefreshTokenDTO,
 } from '../dto/create-auth.dto';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guards';
-import { Roles } from '../decorators/roles.decorator';
 
 @Controller('auth')
 export class AuthController {
