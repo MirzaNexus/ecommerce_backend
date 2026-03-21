@@ -10,9 +10,16 @@ export class RefreshTokenRepository {
     private readonly refreshTokenRepository: Repository<RefreshToken>,
   ) {}
 
-  async createToken(userId: string, expiresAt: Date): Promise<RefreshToken> {
+  async createToken(
+    userId: string,
+    device_id: string,
+    token_hash: string,
+    expiresAt: Date,
+  ): Promise<RefreshToken> {
     const token = this.refreshTokenRepository.create({
       user_id: userId,
+      device_id,
+      token_hash,
       expires_at: expiresAt,
     });
 
@@ -53,5 +60,28 @@ export class RefreshTokenRepository {
       .set({ revoked_at: new Date() })
       .where('user_id = :userId', { userId })
       .execute();
+  }
+
+  async findActiveByUserAndDevice(userId: string, deviceId: string) {
+    return this.refreshTokenRepository.findOne({
+      where: {
+        user_id: userId,
+        device_id: deviceId,
+        revoked_at: IsNull(),
+      },
+    });
+  }
+
+  async revokeByUserAndDevice(userId: string, deviceId: string) {
+    await this.refreshTokenRepository.update(
+      {
+        user_id: userId,
+        device_id: deviceId,
+        revoked_at: IsNull(),
+      },
+      {
+        revoked_at: new Date(),
+      },
+    );
   }
 }

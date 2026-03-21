@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, MinLength } from 'class-validator';
+import { IsEmail, IsString, IsNotEmpty, MinLength } from 'class-validator';
 
 export class LoginDTO {
   @IsEmail()
@@ -8,6 +8,10 @@ export class LoginDTO {
   @IsNotEmpty()
   @MinLength(8)
   password: string;
+
+  @IsNotEmpty()
+  @IsString()
+  deviceId: string;
 }
 
 export class RefreshTokenDTO {
@@ -16,6 +20,8 @@ export class RefreshTokenDTO {
 }
 
 export class LoginResponseDTO {
+  success?: boolean;
+  message?: string;
   accessToken: string;
   refreshToken: string;
 }

@@ -35,6 +35,7 @@ export class JwtTokenService {
 
   async generateRefreshToken(
     userId: string,
+    deviceId: string,
     sessionExpiresAt?: Date,
   ): Promise<string> {
     const expiresAt =
@@ -42,6 +43,8 @@ export class JwtTokenService {
 
     const tokenEntity = await this.refreshTokenRepo.createToken(
       userId,
+      deviceId,
+      '',
       expiresAt,
     );
 
@@ -104,6 +107,7 @@ export class JwtTokenService {
     return {
       userId: payload.userId,
       tokenId: payload.tokenId,
+      device_id: token.device_id,
       expiresAt: token.expires_at,
     };
   }
@@ -111,11 +115,12 @@ export class JwtTokenService {
   async rotateRefreshToken(
     userId: string,
     oldTokenId: string,
+    device_id: string,
     sessionExpiresAt: Date,
   ): Promise<string> {
     await this.refreshTokenRepo.revokeToken(oldTokenId);
 
-    return this.generateRefreshToken(userId, sessionExpiresAt);
+    return this.generateRefreshToken(userId, device_id, sessionExpiresAt);
   }
 
   /*

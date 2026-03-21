@@ -13,6 +13,7 @@ import { UpdateProfileDto } from '../dto/update-user.dto';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guards';
 import { RolesGuard } from 'src/modules/auth/guards/role.guard';
 import { Roles } from 'src/modules/auth/decorators/roles.decorator';
+import { UserRole } from '../entities/user.entity';
 
 @Controller('users')
 export class UserController {
@@ -25,14 +26,14 @@ export class UserController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Buyer')
+  @Roles(UserRole.BUYER)
   async getProfile(@Req() req) {
     const userId = req.user?.id;
     return this.userService.getMyProfile(userId);
   }
   @Patch('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Buyer')
+  @Roles(UserRole.BUYER)
   async updateProfile(@Req() req: any, @Body() dto: UpdateProfileDto) {
     const userId = req.user?.id;
     return this.userService.updateProfile(userId, dto);

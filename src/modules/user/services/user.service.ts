@@ -42,7 +42,7 @@ export class UserService {
 
       return {
         success: true,
-        message: 'Buyer registered successfully',
+        message: 'User registered successfully',
         data: {
           userId: user.id,
           email: user.email,
@@ -72,6 +72,7 @@ export class UserService {
       fullName: user.fullName,
       email: user.email,
       phone: user.phone,
+      role: user.role,
       avatarUrl: user.avatarUrl ?? null,
     };
   }

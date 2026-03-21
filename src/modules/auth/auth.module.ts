@@ -11,6 +11,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository';
 import { PasswordHashService } from './services/password-hash/password-hash.service';
 import { forwardRef } from '@nestjs/common';
+import { JwtStrategy } from './strategies/jwt-strategy';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Credential, RefreshToken]),
@@ -27,6 +28,7 @@ import { forwardRef } from '@nestjs/common';
     JwtTokenService,
     RefreshTokenRepository,
     PasswordHashService,
+    JwtStrategy,
   ],
   exports: [AuthService],
 })

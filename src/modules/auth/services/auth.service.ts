@@ -9,6 +9,7 @@ import { CredentialRepository } from '../repositories/credential.repository';
 import { PasswordHashService } from './password-hash/password-hash.service';
 import { UserService } from 'src/modules/user/services/user.service';
 import { JwtTokenService } from './jwt-token.service/jwt-token.service.service';
+import { RefreshTokenRepository } from '../repositories/refresh-token.repository';
 import {
   LoginDTO,
   LoginResponseDTO,
@@ -25,6 +26,7 @@ export class AuthService {
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     private readonly jwtService: JwtTokenService,
+    private readonly refreshTokenRepo: RefreshTokenRepository,
   ) {}
 
   async createCredentials(
@@ -55,14 +57,28 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    const existingToken = await this.refreshTokenRepo.findActiveByUserAndDevice(
+      user.id,
+      dto.deviceId,
+    );
+
+    if (existingToken) {
+      throw new UnauthorizedException('Already logged in on this device');
+    }
+
     const accessToken = await this.jwtService.generateAccessToken(
       user.id,
       user.email,
       user.role,
     );
-    const refreshToken = await this.jwtService.generateRefreshToken(user.id);
+    const refreshToken = await this.jwtService.generateRefreshToken(
+      user.id,
+      dto.deviceId,
+    );
 
     return {
+      success: true,
+      message: 'User logged-In successfully',
       accessToken,
       refreshToken,
     };
@@ -77,6 +93,7 @@ export class AuthService {
     const newRefreshToken = await this.jwtService.rotateRefreshToken(
       payload.userId,
       payload.tokenId,
+      payload.device_id,
       payload.expiresAt,
     );
     const accessToken = await this.jwtService.generateAccessToken(

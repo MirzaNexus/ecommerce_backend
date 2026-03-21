@@ -27,6 +27,9 @@ export class RefreshToken {
   @Column({ type: 'varchar', length: 255 })
   token_hash: string;
 
+  @Column({ type: 'varchar', length: 255 })
+  device_id: string;
+
   @Column({ type: 'timestamp' })
   expires_at: Date;
 
