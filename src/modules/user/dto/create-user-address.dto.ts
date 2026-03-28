@@ -8,9 +8,8 @@ import {
 import { AddressType } from '../entities/user-address.entity';
 
 export class CreateAddressDto {
-  @IsOptional()
   @IsEnum(AddressType)
-  type?: AddressType;
+  type: AddressType;
 
   @IsString()
   @Length(3, 255)
