@@ -38,7 +38,7 @@ export enum UserRole {
 })
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Exclude()
   @Column({ name: 'auth_user_id', type: 'uuid', unique: true, nullable: true })
@@ -46,13 +46,13 @@ export class User {
 
   // Profile fields
   @Column({ name: 'first_name', length: 100 })
-  firstName: string;
+  firstName!: string;
 
   @Column({ name: 'last_name', length: 100, nullable: true })
   lastName?: string;
 
   @Column({ length: 255 })
-  email: string;
+  email!: string;
 
   @Column({ length: 20, nullable: true })
   phone?: string;
@@ -65,10 +65,10 @@ export class User {
     enum: UserStatus,
     default: UserStatus.ACTIVE,
   })
-  status: UserStatus;
+  status!: UserStatus;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.BUYER })
-  role: UserRole;
+  role!: UserRole;
 
   // Soft delete
   @Exclude()
@@ -76,16 +76,16 @@ export class User {
   deletedAt?: Date;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @OneToMany(() => UserAddress, (address) => address.user)
-  addresses: UserAddress[];
+  addresses!: UserAddress[];
 
   @OneToOne(() => Credential, (credential) => credential.user)
-  credential: Credential;
+  credential!: Credential;
 
   @Expose()
   get fullName(): string {

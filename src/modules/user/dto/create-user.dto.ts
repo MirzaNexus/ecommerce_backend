@@ -11,7 +11,7 @@ export class RegisterBuyerDto {
   @IsString()
   @Length(2, 100)
   @IsNotEmpty({ message: 'First name is required' })
-  firstName: string;
+  firstName!: string;
 
   @IsOptional()
   @IsString()
@@ -20,7 +20,7 @@ export class RegisterBuyerDto {
 
   @IsNotEmpty({ message: 'Email is required' })
   @IsEmail({}, { message: 'Invalid email format' })
-  email: string;
+  email!: string;
 
   @IsOptional()
   @IsString()
@@ -29,5 +29,5 @@ export class RegisterBuyerDto {
   @IsNotEmpty({ message: 'Password is required' })
   @IsString()
   @MinLength(8)
-  password: string;
+  password!: string;
 }

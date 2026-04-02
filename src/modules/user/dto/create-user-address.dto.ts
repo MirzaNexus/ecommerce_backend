@@ -9,11 +9,11 @@ import { AddressType } from '../entities/user-address.entity';
 
 export class CreateAddressDto {
   @IsEnum(AddressType)
-  type: AddressType;
+  type!: AddressType;
 
   @IsString()
   @Length(3, 255)
-  line1: string;
+  line1!: string;
 
   @IsOptional()
   @IsString()
@@ -22,7 +22,7 @@ export class CreateAddressDto {
 
   @IsString()
   @Length(2, 100)
-  city: string;
+  city!: string;
 
   @IsOptional()
   @IsString()
@@ -36,7 +36,7 @@ export class CreateAddressDto {
 
   @IsString()
   @Length(2, 100)
-  country: string;
+  country!: string;
 
   @IsOptional()
   @IsBoolean()

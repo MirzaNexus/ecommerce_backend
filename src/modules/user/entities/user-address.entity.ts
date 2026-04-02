@@ -23,31 +23,31 @@ export enum AddressType {
 })
 export class UserAddress {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ name: 'user_id', type: 'uuid' })
-  userId: string;
+  userId!: string;
 
   @ManyToOne(() => User, (user) => user.addresses, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user!: User;
 
   @Column({
     type: 'enum',
     enum: AddressType,
   })
-  type: AddressType;
+  type!: AddressType;
 
   @Column({ length: 255 })
-  line1: string;
+  line1!: string;
 
   @Column({ length: 255, nullable: true })
   line2?: string;
 
   @Column({ length: 100 })
-  city: string;
+  city!: string;
 
   @Column({ length: 100, nullable: true })
   state?: string;
@@ -56,14 +56,14 @@ export class UserAddress {
   postalCode?: string;
 
   @Column({ length: 100 })
-  country: string;
+  country!: string;
 
   @Column({ name: 'is_default', default: false })
-  isDefault: boolean;
+  isDefault!: boolean;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 }
