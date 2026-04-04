@@ -39,11 +39,11 @@ npm run build => always before migrations
 
 ## Create Manual Migration
 
-npm run migration:create
+npm run migration:create -- --name=UpdateUserRoleToAdmin
 
 ## Generate Migration from Entities
 
-npm run migration:generate -- -n <migration_name>
+npm run migration:generate -- src/database/migrations/CreateUserAndUserAddresses
 
 ## Run Pending Migrations
 
@@ -122,3 +122,16 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+<!-- Admin Login Credidentials
+{
+  "email": "admin@example.com",
+  "password": "admin123",
+  "deviceId": "laptop_1"
+}
+
+{
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyMmUzY2QwNy02YWRmLTQzZDgtOTExMy1hMTU1MTI5MjRkMTAiLCJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzc0MTI0NDE0LCJleHAiOjE3NzQxMjUzMTR9.DKAOrlLjIWvwdkZIcG3nJvIcdwnq-UFXc4onfvZypWA",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyMmUzY2QwNy02YWRmLTQzZDgtOTExMy1hMTU1MTI5MjRkMTAiLCJ0b2tlbklkIjoiYWRkNzIwMWQtNzM3Ni00NGIyLWJlNzgtZTNiMzhmMTZmMTllIiwiaWF0IjoxNzc0MTI0NDEzLCJleHAiOjE3NzY3MTY0MTN9.DRd39BU9zS7ihjGbS8tpVGSqyjMWYovWMjZNPtiNAiI"
+}
+ -->
