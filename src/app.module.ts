@@ -7,6 +7,7 @@ import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
+import { ProductsModule } from './modules/products/products.module';
 @Module({
   imports: [
     ConfigModule,
@@ -14,6 +15,7 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
     EventEmitterModule.forRoot(),
     UserModule,
     AuthModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
