@@ -15,7 +15,7 @@ import { ProductResponseDto } from '../dto/productResponseDto';
 import { GetAllProductsQueryDto } from '../dto/getAllProductsQueryDto';
 import { PaginatedProductsDto } from '../dto/getAllProductsQueryDto';
 import { Category } from '../entities/category.entity';
-import { IsUUID } from 'class-validator';
+import { ProductStatus } from '../enums/product-status.enum';
 
 @Injectable()
 export class ProductService {
@@ -40,7 +40,12 @@ export class ProductService {
         throw new BadRequestException('Base price cannot be negative');
       }
 
-      let slug = dto.slug ?? dto.name.toLowerCase().replace(/\s+/g, '-');
+      let slug =
+        dto.slug ??
+        dto.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
 
       const existingSlug = await this.productRepo.findBySlug(slug);
       if (existingSlug) {
@@ -63,61 +68,48 @@ export class ProductService {
     id: string,
     dto: Partial<CreateProductDto>,
   ): Promise<ProductResponseDto> {
-    const manager = this.dataSource.manager;
-    const productRepo = new ProductRepository(manager);
-    const categoryRepo = manager.getRepository(Category);
-
-    const product = await productRepo.findById(id);
-
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
-
-    if (dto.categoryId) {
-      const category = await categoryRepo.findOne({
-        where: { id: dto.categoryId },
-      });
-
-      if (!category) {
-        throw new BadRequestException('Invalid category');
+    return await this.dataSource.transaction(async (manager) => {
+      const product = await this.productRepo.findById(id, manager);
+      if (!product) {
+        throw new NotFoundException('Product not found');
       }
-    }
 
-    if (dto.basePrice !== undefined && dto.basePrice < 0) {
-      throw new BadRequestException('Base price cannot be negative');
-    }
-
-    if (dto.slug) {
-      const existing = await productRepo.findBySlug(dto.slug);
-      if (existing && existing.id !== id) {
-        throw new ConflictException('Slug already in use');
+      if (dto.categoryId) {
+        const categoryRepo = manager.getRepository(Category);
+        const category = await categoryRepo.findOne({
+          where: { id: dto.categoryId },
+        });
+        if (!category) throw new BadRequestException('Invalid category');
       }
-    }
 
-    const safeUpdate: Partial<Product> = {
-      ...(dto.name && { name: dto.name }),
-      ...(dto.description !== undefined && { description: dto.description }),
-      ...(dto.categoryId && { categoryId: dto.categoryId }),
-      ...(dto.basePrice !== undefined && { basePrice: dto.basePrice }),
-      ...(dto.slug && { slug: dto.slug }),
-      ...(dto.imageUrl && { imageUrl: dto.imageUrl }),
-      ...(dto.status && { status: dto.status }),
-    };
+      if (dto.slug) {
+        const existing = await this.productRepo.findBySlug(dto.slug, manager);
+        if (existing && existing.id !== id) {
+          throw new ConflictException('Slug already in use');
+        }
+      }
+      const safeUpdate: Partial<Product> = {
+        ...(dto.name && { name: dto.name }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.categoryId && { categoryId: dto.categoryId }),
+        ...(dto.basePrice !== undefined && { basePrice: dto.basePrice }),
+        ...(dto.slug && { slug: dto.slug }),
+        ...(dto.imageUrl && { imageUrl: dto.imageUrl }),
+        ...(dto.status && { status: dto.status }),
+      };
 
-    await productRepo.updatePartial(id, safeUpdate);
+      await this.productRepo.updatePartial(id, safeUpdate, manager);
 
-    const updated = await productRepo.findById(id);
+      const updatedProduct = await this.productRepo.findById(id, manager);
 
-    return ProductResponseDto.fromEntity(updated!);
+      return ProductResponseDto.fromEntity(updatedProduct!);
+    });
   }
 
   async getAllProductsAdmin(
     query: GetAllProductsQueryDto = {},
   ): Promise<PaginatedProductsDto> {
-    const manager = this.dataSource.manager;
-    const productRepo = new ProductRepository(manager);
-
-    const [products, total] = await productRepo.findAllAdmin(query);
+    const [products, total] = await this.productRepo.findAllAdmin(query);
 
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
@@ -148,46 +140,73 @@ export class ProductService {
   }
 
   async deleteProduct(id: string): Promise<{ message: string }> {
-    const manager = this.dataSource.manager;
-    const productRepo = new ProductRepository(manager);
+    return await this.dataSource.transaction(async (manager) => {
+      const product = await this.productRepo.findById(id, manager);
 
-    const product = await productRepo.findById(id);
+      if (!product) {
+        throw new NotFoundException('Product not found');
+      }
 
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
+      await this.productRepo.softDelete(id, manager);
 
-    if (product.deletedAt) {
-      throw new BadRequestException('Product already deleted');
-    }
-
-    await productRepo.updatePartial(id, {
-      deletedAt: new Date(),
+      return { message: 'Product successfully moved to trash' };
     });
-
-    return { message: 'Product deleted successfully' };
   }
 
   async togglePublish(id: string): Promise<ProductResponseDto> {
-    const manager = this.dataSource.manager;
-    const productRepo = new ProductRepository(manager);
+    return await this.dataSource.transaction(async (manager) => {
+      const product = await this.productRepo.findById(id, manager);
 
-    const product = await productRepo.findById(id);
+      if (!product) {
+        throw new NotFoundException('Product not found');
+      }
 
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
+      if (product.deletedAt) {
+        throw new BadRequestException('Cannot publish deleted product');
+      }
+      await this.productRepo.updatePartial(
+        id,
+        {
+          isPublished: !product.isPublished,
+        },
+        manager,
+      );
 
-    if (product.deletedAt) {
-      throw new BadRequestException('Cannot publish deleted product');
-    }
-
-    await productRepo.updatePartial(id, {
-      isPublished: !product.isPublished,
+      const updatedProduct = await this.productRepo.findById(id, manager);
+      return ProductResponseDto.fromEntity(updatedProduct!);
     });
+  }
 
-    const updated = await productRepo.findById(id);
+  async toggleStatus(id: string): Promise<ProductResponseDto> {
+    return await this.dataSource.transaction(async (manager) => {
+      const product = await this.productRepo.findById(id, manager);
 
-    return ProductResponseDto.fromEntity(updated!);
+      if (!product) throw new NotFoundException('Product not found');
+      if (product.status === ProductStatus.ARCHIVED) {
+        throw new BadRequestException(
+          'Cannot toggle status of an archived product',
+        );
+      }
+
+      const newStatus =
+        product.status === ProductStatus.DRAFT
+          ? ProductStatus.PUBLISHED
+          : ProductStatus.DRAFT;
+
+      await this.productRepo.updateStatus(id, newStatus, manager);
+      const updatedProduct = await this.productRepo.findById(id, manager);
+      return ProductResponseDto.fromEntity(updatedProduct!);
+    });
+  }
+
+  async archiveProduct(id: string): Promise<{ message: string }> {
+    return await this.dataSource.transaction(async (manager) => {
+      const product = await this.productRepo.findById(id, manager);
+      if (!product) throw new NotFoundException('Product not found');
+
+      await this.productRepo.softDelete(id, manager);
+
+      return { message: 'Product moved to archive successfully' };
+    });
   }
 }

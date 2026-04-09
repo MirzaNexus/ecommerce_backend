@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsEnum,
   IsNumber,
+  Matches,
   IsUrl,
 } from 'class-validator';
 import { ProductStatus } from '../enums/product-status.enum';
@@ -34,6 +35,9 @@ export class CreateProductDto {
 
   @IsOptional()
   @IsString({ message: 'Slug must be a string' })
+  @Matches(/^[a-z0-9-]+$/, {
+    message: 'Slug must only contain lowercase letters, numbers, and dashes',
+  })
   slug?: string;
 
   @IsUrl({}, { message: 'Image must be a valid URL' })

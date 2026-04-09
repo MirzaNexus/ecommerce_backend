@@ -3,6 +3,7 @@ import { Repository, EntityManager, FindOptionsWhere, IsNull } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from '../entities/product.entity';
 import { GetAllProductsQueryDto } from '../dto/getAllProductsQueryDto';
+import { ProductStatus } from '../enums/product-status.enum';
 
 @Injectable()
 export class ProductRepository {
@@ -37,6 +38,16 @@ export class ProductRepository {
     manager?: EntityManager,
   ): Promise<void> {
     await this.repo(manager).update({ id }, data);
+  }
+
+  async softDelete(id: string, manager?: EntityManager): Promise<void> {
+    await this.repo(manager).update(
+      { id },
+      {
+        status: ProductStatus.ARCHIVED,
+        deletedAt: new Date(),
+      },
+    );
   }
 
   async existsByCategoryId(
@@ -92,5 +103,13 @@ export class ProductRepository {
     qb.orderBy('product.createdAt', 'DESC');
 
     return await qb.getManyAndCount();
+  }
+
+  async updateStatus(
+    id: string,
+    status: ProductStatus,
+    manager?: EntityManager,
+  ): Promise<void> {
+    await this.repo(manager).update({ id }, { status });
   }
 }

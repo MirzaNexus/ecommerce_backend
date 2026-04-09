@@ -56,8 +56,13 @@ export class ProductController {
     return this.service.deleteProduct(id);
   }
 
-  @Patch(':id/toggle-publish')
-  async togglePublish(@Param('id') id: string) {
-    return this.service.togglePublish(id);
+  @Patch(':id/toggle')
+  async toggle(@Param('id') id: string) {
+    return this.service.toggleStatus(id);
+  }
+
+  @Patch(':id/archive')
+  async archiveProduct(@Param('id') id: string) {
+    return this.service.archiveProduct(id);
   }
 }
