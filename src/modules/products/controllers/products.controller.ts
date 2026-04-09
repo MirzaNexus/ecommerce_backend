@@ -17,18 +17,16 @@ import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductIdParamDto } from '../dto/getAllProductsQueryDto';
 import { GetAllProductsQueryDto } from '../dto/getAllProductsQueryDto';
+import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guards';
+import { RolesGuard } from 'src/modules/auth/guards/role.guard';
+import { Roles } from 'src/modules/auth/decorators/roles.decorator';
+import { UserRole } from 'src/modules/user/entities/user.entity';
 
-// import { AuthGuard } from 'src/common/guards/auth.guard';
-// import { RolesGuard } from 'src/common/guards/roles.guard';
-// import { Roles } from 'src/common/decorators/roles.decorator';
-
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 @Controller('admin/products')
 export class ProductController {
   constructor(private readonly service: ProductService) {}
-
-  // 🔐 Apply later in production
-  // @UseGuards(AuthGuard, RolesGuard)
-  // @Roles('ADMIN')
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
