@@ -17,9 +17,14 @@ export class ProductRepository {
     return await this.repo(manager).save(product);
   }
 
-  async findById(id: string, manager?: EntityManager): Promise<Product | null> {
+  async findById(
+    id: string,
+    manager?: EntityManager,
+    relations: string[] = [],
+  ): Promise<Product | null> {
     return await this.repo(manager).findOne({
       where: { id, deletedAt: IsNull() },
+      relations: relations,
     });
   }
 
@@ -70,6 +75,7 @@ export class ProductRepository {
   ): Promise<[Product[], number]> {
     const qb = this.repo(manager)
       .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
       .where('product.deletedAt IS NULL');
 
     if (query.isPublished !== undefined) {
@@ -103,6 +109,16 @@ export class ProductRepository {
     qb.orderBy('product.createdAt', 'DESC');
 
     return await qb.getManyAndCount();
+  }
+
+  async findWithDetails(
+    id: string,
+    manager?: EntityManager,
+  ): Promise<Product | null> {
+    return await this.repo(manager).findOne({
+      where: { id, deletedAt: IsNull() },
+      relations: ['category', 'variants', 'variants.inventory'],
+    });
   }
 
   async updateStatus(

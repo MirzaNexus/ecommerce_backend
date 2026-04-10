@@ -14,10 +14,14 @@ export class VariantRepository {
     return await this.repo(manager).save(variant);
   }
 
-  async findById(id: string, manager?: EntityManager): Promise<Variant | null> {
+  async findById(
+    id: string,
+    manager?: EntityManager,
+    relations: string[] = ['product'],
+  ): Promise<Variant | null> {
     return await this.repo(manager).findOne({
       where: { id, deletedAt: IsNull() },
-      relations: ['product'],
+      relations: relations,
     });
   }
 

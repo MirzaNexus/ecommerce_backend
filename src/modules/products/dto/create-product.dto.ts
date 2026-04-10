@@ -5,10 +5,14 @@ import {
   IsBoolean,
   IsEnum,
   IsNumber,
+  IsArray,
+  ValidateNested,
   Matches,
   IsUrl,
 } from 'class-validator';
 import { ProductStatus } from '../enums/product-status.enum';
+import { Type } from 'class-transformer';
+import { CreateVariantDto } from './variant/create-variant.dto';
 
 export class CreateProductDto {
   @IsString({ message: 'Product name must be a string' })
@@ -42,4 +46,9 @@ export class CreateProductDto {
 
   @IsUrl({}, { message: 'Image must be a valid URL' })
   imageUrl?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateVariantDto)
+  variants: CreateVariantDto[];
 }

@@ -8,6 +8,7 @@ import {
 } from 'class-validator';
 import { ProductStatus } from '../enums/product-status.enum';
 import { ProductResponseDto } from './productResponseDto';
+import { Type } from 'class-transformer';
 
 export class GetAllProductsQueryDto {
   @IsOptional()
@@ -27,10 +28,12 @@ export class GetAllProductsQueryDto {
   search?: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   page?: number = 1;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   limit?: number = 10;
 }

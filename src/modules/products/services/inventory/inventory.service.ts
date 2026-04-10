@@ -18,52 +18,56 @@ export class InventoryService {
 
   async createInventory(
     dto: CreateInventoryDto,
-    manager?: EntityManager,
+    manager?: EntityManager, // Bahar se manager aa raha hai
   ): Promise<Inventory> {
-    return await this.dataSource.transaction(async (txnManager) => {
-      const repoManager = manager ?? txnManager;
+    const m = manager ?? this.dataSource.manager;
 
-      if (dto.stock < 0)
-        throw new BadRequestException('Stock cannot be negative');
+    if (dto.stock < 0) {
+      throw new BadRequestException('Stock cannot be negative');
+    }
 
-      const inventory = repoManager.create(Inventory, {
-        variantId: dto.variantId,
-        stock: dto.stock,
-      });
-
-      return await this.inventoryRepo.create(inventory, repoManager);
+    const inventory = m.create(Inventory, {
+      variantId: dto.variantId,
+      stock: dto.stock,
     });
+
+    return await this.inventoryRepo.create(inventory, m);
   }
 
-  async updateStock(variantId: string, stock: number) {
+  async updateStock(variantId: string, stock: number, manager?: EntityManager) {
     if (stock < 0) {
       throw new BadRequestException('Stock cannot be negative');
     }
 
-    return await this.dataSource.transaction(async (manager) => {
+    const runner = async (txnManager: EntityManager) => {
       const inventory = await this.inventoryRepo.findByVariantId(
         variantId,
-        manager,
+        txnManager,
       );
 
       if (!inventory) {
         throw new NotFoundException('Inventory not found');
       }
 
-      // 🔥 Critical: row-level lock inside repo
       const updated = await this.inventoryRepo.updateStockWithLock(
         variantId,
         stock,
-        manager,
+        txnManager,
       );
 
       if (!updated) {
         throw new ConflictException('Stock update failed due to concurrency');
       }
 
-      return {
-        message: 'Stock updated successfully',
-      };
-    });
+      return { message: 'Stock updated successfully' };
+    };
+
+    return manager
+      ? await runner(manager)
+      : await this.dataSource.transaction(runner);
+  }
+
+  async deleteInventoryByVariant(variantId: string, manager: EntityManager) {
+    await this.inventoryRepo.softDeleteByVariantId(variantId, manager);
   }
 }

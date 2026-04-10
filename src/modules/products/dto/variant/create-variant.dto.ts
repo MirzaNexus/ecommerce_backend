@@ -1,6 +1,7 @@
 import {
   IsString,
   IsNumber,
+  Min,
   IsUUID,
   IsOptional,
   ValidateNested,
@@ -51,6 +52,11 @@ export class CreateVariantDto {
 
   @IsNumber({}, { message: 'Price must be a number' })
   price!: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  stock: number = 0;
 
   @IsOptional()
   @ValidateNested()

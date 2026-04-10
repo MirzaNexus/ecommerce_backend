@@ -16,6 +16,7 @@ import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guards';
 import { RolesGuard } from 'src/modules/auth/guards/role.guard';
 import { Roles } from 'src/modules/auth/decorators/roles.decorator';
 import { UserRole } from 'src/modules/user/entities/user.entity';
+import { UpdateVariantDto } from '../../dto/variant/update-variant.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
@@ -30,10 +31,7 @@ export class VariantController {
   }
 
   @Put(':id')
-  async update(
-    @Param('id') id: string,
-    @Body() dto: Partial<CreateVariantDto>,
-  ) {
+  async update(@Param('id') id: string, @Body() dto: UpdateVariantDto) {
     return this.service.updateVariant(id, dto);
   }
 

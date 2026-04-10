@@ -10,7 +10,8 @@ import { Inventory } from './entities/inventory.entity';
 import { Product } from './entities/product.entity';
 import { CategoryRepository } from './repositories/category.repository';
 import { ProductRepository } from './repositories/product.repositry';
-import { VariantsService } from './services/variant/variants.service';
+import { VariantService } from './services/variant/variants.service';
+
 import { InventoryService } from './services/inventory/inventory.service';
 import { InventoryController } from './controllers/inventory/inventory.controller';
 import { InventoryRepository } from './repositories/inventory.repository';
@@ -33,7 +34,7 @@ import { VariantController } from './controllers/variant/variant.controller';
     ProductRepository,
     VariantRepository,
     InventoryRepository,
-    VariantsService,
+    VariantService,
     InventoryService,
   ],
 })

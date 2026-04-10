@@ -21,9 +21,6 @@ export class InventoryRepository {
     });
   }
 
-  /**
-   * 🔥 Critical: Row-level locking for concurrency safety
-   */
   async updateStockWithLock(
     variantId: string,
     stock: number,
@@ -32,7 +29,8 @@ export class InventoryRepository {
     const qb = this.repo(manager)
       .createQueryBuilder('inventory')
       .setLock('pessimistic_write')
-      .where('inventory.variantId = :variantId', { variantId });
+      .where('inventory.variantId = :variantId', { variantId })
+      .andWhere('inventory.deletedAt IS NULL');
 
     const inventory = await qb.getOne();
 
@@ -48,5 +46,12 @@ export class InventoryRepository {
     manager?: EntityManager,
   ): Promise<Inventory> {
     return await this.repo(manager).save(inventory);
+  }
+
+  async softDeleteByVariantId(
+    variantId: string,
+    manager?: EntityManager,
+  ): Promise<void> {
+    await this.repo(manager).update({ variantId }, { deletedAt: new Date() });
   }
 }
