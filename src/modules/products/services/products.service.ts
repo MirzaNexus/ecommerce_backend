@@ -15,11 +15,13 @@ import { CategoryRepository } from '../repositories/category.repository';
 import { ProductResponseDto } from '../dto/productResponseDto';
 import { GetAllProductsQueryDto } from '../dto/getAllProductsQueryDto';
 import { PaginatedProductsDto } from '../dto/getAllProductsQueryDto';
-import { Category } from '../entities/category.entity';
 import { ProductStatus } from '../enums/product-status.enum';
-import { InventoryService } from './inventory/inventory.service';
 import { VariantService } from './variant/variants.service';
 import { CreateVariantDto } from '../dto/variant/create-variant.dto';
+import { MediaService } from 'src/modules/media/media.service';
+import { GetBuyerProductsQueryDto } from '../dto/getBuyerProductQueryDto';
+import { PaginatedBuyerProductsDto } from '../dto/buyerProductResponseDto';
+import { BuyerProductResponseDto } from '../dto/buyerProductResponseDto';
 
 @Injectable()
 export class ProductService {
@@ -28,21 +30,18 @@ export class ProductService {
     private readonly categoryRepo: CategoryRepository,
     private readonly productRepo: ProductRepository,
     private readonly variantService: VariantService,
-    private readonly inventoryService: InventoryService,
+    private readonly mediaService: MediaService,
   ) {}
 
   private async handleNestedCreation(
     productId: string,
     vDto: CreateVariantDto,
     manager: EntityManager,
+    imageUrl?: string,
   ) {
-    const variant = await this.variantService.createVariant(
-      { ...vDto, productId },
-      manager,
-    );
-
-    await this.inventoryService.createInventory(
-      { variantId: variant.data.id, stock: vDto.stock ?? 0 },
+    await this.variantService.createVariant(
+      { ...vDto, productId, imageUrl },
+      undefined,
       manager,
     );
   }
@@ -54,7 +53,26 @@ export class ProductService {
       .replace(/^-+|-+$/g, '');
   }
 
-  async createProduct(dto: CreateProductDto): Promise<ProductResponseDto> {
+  async createProduct(
+    dto: CreateProductDto,
+    mainFile?: Express.Multer.File,
+    variantFiles?: Express.Multer.File[],
+  ): Promise<ProductResponseDto> {
+    let productImageUrl = '';
+    if (mainFile) {
+      productImageUrl = await this.mediaService.uploadImage(
+        mainFile,
+        'products',
+      );
+    }
+
+    const variantImageUrls: string[] = [];
+    if (variantFiles) {
+      for (const file of variantFiles) {
+        const url = await this.mediaService.uploadImage(file, 'variants');
+        variantImageUrls.push(url);
+      }
+    }
     return await this.dataSource.transaction(async (manager) => {
       const category = await this.categoryRepo.findById(
         dto.categoryId,
@@ -72,6 +90,7 @@ export class ProductService {
       const productEntity = manager.create(Product, {
         ...dto,
         slug,
+        productImageUrl,
         isPublished: false,
       });
       const savedProduct = await this.productRepo.create(
@@ -80,8 +99,13 @@ export class ProductService {
       );
 
       if (dto.variants && dto.variants.length > 0) {
-        for (const variantDto of dto.variants) {
-          await this.handleNestedCreation(savedProduct.id, variantDto, manager);
+        for (let i = 0; i < dto.variants.length; i++) {
+          await this.handleNestedCreation(
+            savedProduct.id,
+            dto.variants[i],
+            manager,
+            variantImageUrls[i],
+          );
         }
       }
 
@@ -101,8 +125,13 @@ export class ProductService {
 
   async updateProduct(
     id: string,
-    dto: Partial<CreateProductDto>,
+    dto: UpdateProductDto,
+    file?: Express.Multer.File,
   ): Promise<ProductResponseDto> {
+    let uploadedImageUrl: string | undefined;
+    if (file) {
+      uploadedImageUrl = await this.mediaService.uploadImage(file, 'products');
+    }
     return await this.dataSource.transaction(async (manager) => {
       const product = await this.productRepo.findById(id, manager);
       if (!product) {
@@ -135,7 +164,7 @@ export class ProductService {
         ...(dto.categoryId && { categoryId: dto.categoryId }),
         ...(dto.basePrice !== undefined && { basePrice: dto.basePrice }),
         ...(finalSlug && { slug: finalSlug }),
-        ...(dto.imageUrl && { imageUrl: dto.imageUrl }),
+        imageUrl: uploadedImageUrl || dto.imageUrl || product.imageUrl,
         ...(dto.status && { status: dto.status }),
         updatedAt: new Date(),
       };
@@ -253,5 +282,21 @@ export class ProductService {
 
       return { message: 'Product moved to archive successfully' };
     });
+  }
+
+  async getAllProductsBuyer(
+    query: GetBuyerProductsQueryDto = {},
+  ): Promise<PaginatedBuyerProductsDto> {
+    const [products, total] = await this.productRepo.findAllBuyer(query);
+
+    return {
+      data: products.map((p) => BuyerProductResponseDto.fromEntity(p, query)),
+      meta: {
+        total,
+        page: query.page ?? 1,
+        limit: query.limit ?? 12,
+        totalPages: Math.ceil(total / (query.limit ?? 12)),
+      },
+    };
   }
 }

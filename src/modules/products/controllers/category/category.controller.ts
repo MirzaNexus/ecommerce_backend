@@ -20,28 +20,31 @@ import { Roles } from 'src/modules/auth/decorators/roles.decorator';
 import { UserRole } from 'src/modules/user/entities/user.entity';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
-@Controller('admin/categories')
+@Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Post()
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async createCategory(@Body() dto: CreateCategoryDto) {
     return this.categoryService.createCategory(dto);
   }
 
   @Get()
+  @Roles(UserRole.ADMIN, UserRole.BUYER)
   async getAllCategories() {
     return this.categoryService.getAllCategoriesAdmin();
   }
 
   @Get('tree')
+  @Roles(UserRole.ADMIN, UserRole.BUYER)
   async getCategoryTree() {
     return this.categoryService.getAllCategoriesAdminNested();
   }
 
   @Put(':id')
+  @Roles(UserRole.ADMIN)
   async updateCategory(
     @Param('id') id: string,
     @Body() dto: UpdateCategoryDto,
@@ -50,6 +53,7 @@ export class CategoryController {
   }
 
   @Delete(':id')
+  @Roles(UserRole.ADMIN)
   async deleteCategory(@Param('id') id: string) {
     return this.categoryService.deleteCategory(id);
   }

@@ -53,6 +53,10 @@ export class CreateVariantDto {
   @IsNumber({}, { message: 'Price must be a number' })
   price!: number;
 
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
   @IsNumber()
   @Min(0)
   @IsOptional()

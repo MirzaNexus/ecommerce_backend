@@ -8,6 +8,8 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 
 import { CreateVariantDto } from '../../dto/variant/create-variant.dto';
@@ -17,6 +19,7 @@ import { RolesGuard } from 'src/modules/auth/guards/role.guard';
 import { Roles } from 'src/modules/auth/decorators/roles.decorator';
 import { UserRole } from 'src/modules/user/entities/user.entity';
 import { UpdateVariantDto } from '../../dto/variant/update-variant.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
@@ -26,13 +29,22 @@ export class VariantController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreateVariantDto) {
-    return this.service.createVariant(dto);
+  @UseInterceptors(FileInterceptor('image'))
+  async create(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: CreateVariantDto,
+  ) {
+    return this.service.createVariant(dto, file);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateVariantDto) {
-    return this.service.updateVariant(id, dto);
+  @UseInterceptors(FileInterceptor('image'))
+  async update(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: UpdateVariantDto,
+  ) {
+    return this.service.updateVariant(id, dto, file);
   }
 
   @Delete(':id')

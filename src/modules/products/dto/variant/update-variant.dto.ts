@@ -50,6 +50,10 @@ export class UpdateVariantDto {
   @IsNumber()
   price?: number;
 
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
   @IsNumber()
   @Min(0)
   @IsOptional()

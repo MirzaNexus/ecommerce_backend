@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Repository, EntityManager, FindOptionsWhere, IsNull } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { GetBuyerProductsQueryDto } from '../dto/getBuyerProductQueryDto';
 import { Product } from '../entities/product.entity';
 import { GetAllProductsQueryDto } from '../dto/getAllProductsQueryDto';
 import { ProductStatus } from '../enums/product-status.enum';
@@ -127,5 +128,52 @@ export class ProductRepository {
     manager?: EntityManager,
   ): Promise<void> {
     await this.repo(manager).update({ id }, { status });
+  }
+
+  async findAllBuyer(
+    query: GetBuyerProductsQueryDto,
+    manager?: EntityManager,
+  ): Promise<[Product[], number]> {
+    const qb = this.repo(manager)
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      // Join variants taake hum unpar filter laga saken
+      .innerJoinAndSelect('product.variants', 'variants')
+      .where('product.status = :status', { status: ProductStatus.PUBLISHED })
+      .andWhere('product.deletedAt IS NULL');
+
+    if (query.color) {
+      qb.andWhere("LOWER(variants.attributes->>'color') = LOWER(:color)", {
+        color: query.color,
+      });
+    }
+    if (query.size) {
+      qb.andWhere("LOWER(variants.attributes->>'size') = LOWER(:size)", {
+        size: query.size,
+      });
+    }
+    if (query.material) {
+      qb.andWhere(
+        "LOWER(variants.attributes->>'material') = LOWER(:material)",
+        { material: query.material },
+      );
+    }
+
+    if (query.minPrice)
+      qb.andWhere('variants.price >= :minPrice', { minPrice: query.minPrice });
+    if (query.maxPrice)
+      qb.andWhere('variants.price <= :maxPrice', { maxPrice: query.maxPrice });
+
+    if (query.search) {
+      qb.andWhere('(LOWER(product.name) LIKE LOWER(:search))', {
+        search: `%${query.search}%`,
+      });
+    }
+
+    const page = Math.max(query.page ?? 1, 1);
+    const limit = Math.max(query.limit ?? 12, 1);
+    qb.skip((page - 1) * limit).take(limit);
+
+    return await qb.getManyAndCount();
   }
 }

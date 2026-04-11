@@ -9,10 +9,10 @@ import { mergeAttributes } from '../../utils/normalizeAttributes';
 import { VariantRepository } from '../../repositories/variant.repository';
 import { CreateVariantDto } from '../../dto/variant/create-variant.dto';
 import { Variant } from '../../entities/variant.entity';
-import { Product } from '../../entities/product.entity';
 import { ProductRepository } from '../../repositories/product.repositry';
 import { UpdateVariantDto } from '../../dto/variant/update-variant.dto';
 import { InventoryService } from '../inventory/inventory.service';
+import { MediaService } from 'src/modules/media/media.service';
 
 @Injectable()
 export class VariantService {
@@ -21,45 +21,79 @@ export class VariantService {
     private readonly variantRepo: VariantRepository,
     private readonly productRepo: ProductRepository,
     private readonly inventoryService: InventoryService,
+    private readonly mediaService: MediaService,
   ) {}
 
-  async createVariant(dto: CreateVariantDto, manager?: EntityManager) {
-    const m = manager ?? this.dataSource.manager;
-
-    const product = await this.productRepo.findById(dto.productId, m);
-
-    if (!product) {
-      throw new BadRequestException('Product does not exist');
+  async createVariant(
+    dto: CreateVariantDto,
+    file?: Express.Multer.File,
+    manager?: EntityManager,
+  ) {
+    let uploadedImageUrl = dto.imageUrl;
+    if (file) {
+      uploadedImageUrl = await this.mediaService.uploadImage(file, 'variants');
     }
 
-    if (dto.price < 0) {
-      throw new BadRequestException('Price cannot be negative');
-    }
+    const executeLogic = async (m: EntityManager) => {
+      const product = await this.productRepo.findById(dto.productId, m);
+      if (!product) {
+        throw new BadRequestException('Product does not exist');
+      }
 
-    const existingSku = await this.variantRepo.existsBySku(
-      dto.sku,
-      undefined,
-      m,
-    );
-    if (existingSku) {
-      throw new ConflictException('SKU already exists');
-    }
-    const variant = m.create(Variant, {
-      ...dto,
-      product,
-      attributes: dto.attributes,
-      updatedAt: new Date(),
-    });
+      // Validation
+      if (dto.price < 0) {
+        throw new BadRequestException('Price cannot be negative');
+      }
 
-    const saved = await this.variantRepo.create(variant, m);
+      const existingSku = await this.variantRepo.existsBySku(
+        dto.sku,
+        undefined,
+        m,
+      );
+      if (existingSku) {
+        throw new ConflictException('SKU already exists');
+      }
 
-    return {
-      message: 'Variant created successfully',
-      data: saved,
+      // 3. Variant Entity Creation
+      const variant = m.create(Variant, {
+        ...dto,
+        product,
+        imageUrl: uploadedImageUrl,
+        attributes: dto.attributes,
+        updatedAt: new Date(),
+      });
+
+      const saved = await this.variantRepo.create(variant, m);
+
+      await this.inventoryService.createInventory(
+        { variantId: saved.id, stock: dto.stock ?? 0 },
+        m,
+      );
+
+      return {
+        message: 'Variant created successfully',
+        data: saved,
+      };
     };
+
+    if (manager) {
+      return await executeLogic(manager);
+    } else {
+      return await this.dataSource.transaction(async (newManager) => {
+        return await executeLogic(newManager);
+      });
+    }
   }
 
-  async updateVariant(id: string, dto: UpdateVariantDto) {
+  async updateVariant(
+    id: string,
+    dto: UpdateVariantDto,
+    file?: Express.Multer.File,
+  ) {
+    let uploadedImageUrl: string | undefined;
+    if (file) {
+      uploadedImageUrl = await this.mediaService.uploadImage(file, 'variants');
+    }
     return await this.dataSource.transaction(async (manager) => {
       const variant = await this.variantRepo.findById(id, manager);
 
@@ -95,6 +129,7 @@ export class VariantService {
         ...(dto.sku && { sku: dto.sku }),
         ...(dto.price !== undefined && { price: dto.price }),
         ...(dto.attributes && { attributes: mergedAttributes }),
+        imageUrl: uploadedImageUrl || dto.imageUrl || variant.imageUrl,
       };
 
       await this.variantRepo.updatePartial(id, safeUpdate, manager);

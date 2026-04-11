@@ -33,6 +33,9 @@ export class Variant extends BaseEntity {
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   price!: number;
 
+  @Column({ type: 'varchar', nullable: true })
+  imageUrl?: string;
+
   @Column({ type: 'jsonb', nullable: true })
   attributes?: InvariantAttributes;
 

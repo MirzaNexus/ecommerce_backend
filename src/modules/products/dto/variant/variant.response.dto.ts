@@ -2,6 +2,7 @@ export class VariantResponseDto {
   id!: string;
   sku!: string;
   price!: number;
+  imageUrl?: string;
   stock?: number;
   attributes!: {
     color?: string;
@@ -21,7 +22,7 @@ export class VariantResponseDto {
     dto.id = entity.id;
     dto.sku = entity.sku;
     dto.price = entity.price ? Number(entity.price) : 0;
-
+    dto.imageUrl = entity.imageUrl;
     if (entity.inventory) {
       dto.stock = entity.inventory.stock;
     }
