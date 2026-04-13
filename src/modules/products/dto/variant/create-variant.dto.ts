@@ -6,7 +6,7 @@ import {
   IsOptional,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 // Dimensions ke liye choti class
 class DimensionsDto {
@@ -39,7 +39,10 @@ export class VariantAttributesDto {
 
   @IsOptional()
   @ValidateNested()
-  @Type(() => DimensionsDto) // Yeh zaroori hai nested validation ke liye
+  @Type(() => DimensionsDto)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? JSON.parse(value) : value,
+  )
   dimensions?: DimensionsDto;
 }
 
@@ -65,5 +68,8 @@ export class CreateVariantDto {
   @IsOptional()
   @ValidateNested()
   @Type(() => VariantAttributesDto) // Is se attributes ke andar ki fields validate hongi
+  @Transform(({ value }) =>
+    typeof value === 'string' ? JSON.parse(value) : value,
+  )
   attributes?: VariantAttributesDto;
 }

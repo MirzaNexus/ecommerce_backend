@@ -10,8 +10,9 @@ import {
   Matches,
   IsUrl,
 } from 'class-validator';
+
 import { ProductStatus } from '../enums/product-status.enum';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { CreateVariantDto } from './variant/create-variant.dto';
 
 export class CreateProductDto {
@@ -50,5 +51,8 @@ export class CreateProductDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateVariantDto)
-  variants: CreateVariantDto[];
+  @Transform(({ value }) =>
+    typeof value === 'string' ? JSON.parse(value) : value,
+  )
+  variants!: CreateVariantDto[];
 }

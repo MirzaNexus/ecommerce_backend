@@ -5,7 +5,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 class UpdateDimensionsDto {
   @IsOptional()
@@ -38,6 +38,9 @@ class UpdateVariantAttributesDto {
   @IsOptional()
   @ValidateNested()
   @Type(() => UpdateDimensionsDto)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? JSON.parse(value) : value,
+  )
   dimensions?: UpdateDimensionsDto;
 }
 
@@ -62,5 +65,8 @@ export class UpdateVariantDto {
   @IsOptional()
   @ValidateNested()
   @Type(() => UpdateVariantAttributesDto)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? JSON.parse(value) : value,
+  )
   attributes?: UpdateVariantAttributesDto;
 }

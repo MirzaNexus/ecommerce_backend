@@ -58,16 +58,21 @@ export class ProductService {
     mainFile?: Express.Multer.File,
     variantFiles?: Express.Multer.File[],
   ): Promise<ProductResponseDto> {
-    let productImageUrl = '';
-    if (mainFile) {
-      productImageUrl = await this.mediaService.uploadImage(
-        mainFile,
-        'products',
-      );
+    if (!mainFile) {
+      throw new BadRequestException('Product main image is required');
     }
 
+    if (!dto.variants || dto.variants.length === 0) {
+      throw new BadRequestException('At least one variant is required');
+    }
+
+    const productImageUrl = await this.mediaService.uploadImage(
+      mainFile,
+      'products',
+    );
     const variantImageUrls: string[] = [];
-    if (variantFiles) {
+
+    if (variantFiles?.length) {
       for (const file of variantFiles) {
         const url = await this.mediaService.uploadImage(file, 'variants');
         variantImageUrls.push(url);
