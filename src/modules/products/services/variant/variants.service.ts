@@ -94,26 +94,20 @@ export class VariantService {
     if (file) {
       uploadedImageUrl = await this.mediaService.uploadImage(file, 'variants');
     }
+
     return await this.dataSource.transaction(async (manager) => {
       const variant = await this.variantRepo.findById(id, manager);
-
-      if (!variant) {
-        throw new NotFoundException('Variant not found');
+      if (!variant || variant.deletedAt) {
+        throw new NotFoundException('Variant not found or has been deleted');
       }
 
-      if (variant.deletedAt) {
-        throw new BadRequestException('Variant has been deleted');
-      }
-
-      if (dto.sku) {
+      if (dto.sku && dto.sku !== variant.sku) {
         const existing = await this.variantRepo.existsBySku(
           dto.sku,
           id,
           manager,
         );
-        if (existing) {
-          throw new ConflictException('SKU already exists');
-        }
+        if (existing) throw new ConflictException('SKU already exists');
       }
 
       if (dto.price !== undefined && dto.price < 0) {
@@ -131,7 +125,6 @@ export class VariantService {
         ...(dto.attributes && { attributes: mergedAttributes }),
         imageUrl: uploadedImageUrl || dto.imageUrl || variant.imageUrl,
       };
-
       await this.variantRepo.updatePartial(id, safeUpdate, manager);
 
       if (dto.stock !== undefined) {
@@ -139,9 +132,8 @@ export class VariantService {
       }
 
       const updated = await this.variantRepo.findById(id, manager);
-
       return {
-        message: 'Variant updated successfully',
+        message: 'Variant and inventory updated successfully',
         data: updated,
       };
     });

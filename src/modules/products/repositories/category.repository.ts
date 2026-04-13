@@ -82,6 +82,7 @@ export class CategoryRepository {
     }
 
     return repo.find({
+      relations: ['parent'],
       where: { deletedAt: IsNull() },
       order: { name: 'ASC' },
     });

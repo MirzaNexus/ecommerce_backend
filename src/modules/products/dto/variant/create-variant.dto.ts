@@ -10,12 +10,15 @@ import { Transform, Type } from 'class-transformer';
 
 // Dimensions ke liye choti class
 class DimensionsDto {
+  @Transform(({ value }) => Number(value))
   @IsNumber({}, { message: 'Height must be a number' })
   height!: number;
 
+  @Transform(({ value }) => Number(value))
   @IsNumber({}, { message: 'Width must be a number' })
   width!: number;
 
+  @Transform(({ value }) => Number(value))
   @IsNumber({}, { message: 'Length must be a number' })
   length!: number;
 }
@@ -53,6 +56,7 @@ export class CreateVariantDto {
   @IsString({ message: 'SKU must be a string' })
   sku!: string;
 
+  @Transform(({ value }) => Number(value))
   @IsNumber({}, { message: 'Price must be a number' })
   price!: number;
 
@@ -60,6 +64,7 @@ export class CreateVariantDto {
   @IsString()
   imageUrl?: string;
 
+  @Transform(({ value }) => Number(value))
   @IsNumber()
   @Min(0)
   @IsOptional()

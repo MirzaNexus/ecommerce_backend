@@ -87,7 +87,7 @@ export class ProductController {
     return this.service.deleteProduct(id);
   }
 
-  @Patch(':id/toggle')
+  @Patch(':id/toggle-status')
   @Roles(UserRole.ADMIN)
   async toggle(@Param('id') id: string) {
     return this.service.toggleStatus(id);

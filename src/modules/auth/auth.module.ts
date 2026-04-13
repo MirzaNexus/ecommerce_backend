@@ -17,7 +17,7 @@ import { JwtStrategy } from './strategies/jwt-strategy';
     TypeOrmModule.forFeature([Credential, RefreshToken]),
     JwtModule.register({
       secret: process.env.JWT_ACCESS_SECRET,
-      signOptions: { expiresIn: '15m' },
+      signOptions: { expiresIn: '1d' },
     }),
     forwardRef(() => UserModule),
   ],

@@ -4,6 +4,7 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  Param,
   UseGuards,
 } from '@nestjs/common';
 
@@ -25,9 +26,12 @@ export class InventoryController {
     return this.service.createInventory(dto);
   }
 
-  @Patch()
+  @Patch(':variantId')
   @HttpCode(HttpStatus.OK)
-  async updateStock(@Body() dto: CreateInventoryDto) {
-    return this.service.updateStock(dto.variantId, dto.stock);
+  async updateStock(
+    @Param('variantId') variantId: string,
+    @Body() dto: { stock: number },
+  ) {
+    return this.service.updateStock(variantId, dto.stock);
   }
 }

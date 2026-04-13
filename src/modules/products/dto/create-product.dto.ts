@@ -26,6 +26,7 @@ export class CreateProductDto {
   @IsUUID('4', { message: 'Invalid category ID format' })
   categoryId!: string;
 
+  @Transform(({ value }) => Boolean(value))
   @IsOptional()
   @IsBoolean({ message: 'isPublished must be boolean' })
   isPublished?: boolean;
@@ -34,6 +35,7 @@ export class CreateProductDto {
   @IsEnum(ProductStatus, { message: 'Invalid product status' })
   status?: ProductStatus;
 
+  @Transform(({ value }) => Number(value))
   @IsOptional()
   @IsNumber({}, { message: 'Base price must be a number' })
   basePrice?: number;
@@ -45,7 +47,8 @@ export class CreateProductDto {
   })
   slug?: string;
 
-  @IsUrl({}, { message: 'Image must be a valid URL' })
+  @IsOptional()
+  @IsString()
   imageUrl?: string;
 
   @IsArray()

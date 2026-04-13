@@ -8,12 +8,15 @@ import {
 import { Transform, Type } from 'class-transformer';
 
 class UpdateDimensionsDto {
+  @Transform(({ value }) => Number(value))
   @IsOptional()
   height?: number;
 
+  @Transform(({ value }) => Number(value))
   @IsOptional()
   width?: number;
 
+  @Transform(({ value }) => Number(value))
   @IsOptional()
   length?: number;
 }
@@ -49,6 +52,7 @@ export class UpdateVariantDto {
   @IsString()
   sku?: string;
 
+  @Transform(({ value }) => Number(value))
   @IsOptional()
   @IsNumber()
   price?: number;
@@ -57,6 +61,7 @@ export class UpdateVariantDto {
   @IsString()
   imageUrl?: string;
 
+  @Transform(({ value }) => Number(value))
   @IsNumber()
   @Min(0)
   @IsOptional()

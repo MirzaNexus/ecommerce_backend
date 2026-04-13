@@ -184,8 +184,12 @@ export class CategoryService {
 
   private mapToDto(category: Category) {
     return {
-      ...category.children,
+      id: category.id,
+      name: category.name,
+      parentId: category.parentId ?? null,
+      parentName: category.parent?.name ?? null,
       deletedAt: category.deletedAt ?? null,
+      createdAt: category.createdAt,
     };
   }
 }
