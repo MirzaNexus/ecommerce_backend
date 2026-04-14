@@ -51,6 +51,8 @@ export class ProductController {
     },
     @Body() dto: CreateProductDto,
   ) {
+    console.log('Received DTO:', dto); // 👈 Yeh line console par check karein
+    console.log('Type of variants:', typeof dto.variants);
     return this.service.createProduct(
       dto,
       files.mainImage?.[0],
@@ -66,7 +68,7 @@ export class ProductController {
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.BUYER)
-  async getOne(@Param('id') params: ProductIdParamDto) {
+  async getOne(@Param() params: ProductIdParamDto) {
     return this.service.getProductById(params.id);
   }
 

@@ -5,9 +5,9 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { plainToInstance, Transform, Type } from 'class-transformer';
 
-class UpdateDimensionsDto {
+export class UpdateDimensionsDto {
   @Transform(({ value }) => Number(value))
   @IsOptional()
   height?: number;
@@ -21,7 +21,7 @@ class UpdateDimensionsDto {
   length?: number;
 }
 
-class UpdateVariantAttributesDto {
+export class UpdateVariantAttributesDto {
   @IsOptional()
   @IsString()
   color?: string;
@@ -65,13 +65,14 @@ export class UpdateVariantDto {
   @IsNumber()
   @Min(0)
   @IsOptional()
-  stock?: number = 0;
+  stock?: number;
 
   @IsOptional()
   @ValidateNested()
   @Type(() => UpdateVariantAttributesDto)
-  @Transform(({ value }) =>
-    typeof value === 'string' ? JSON.parse(value) : value,
-  )
+  @Transform(({ value }) => {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    return plainToInstance(UpdateVariantAttributesDto, parsed);
+  })
   attributes?: UpdateVariantAttributesDto;
 }

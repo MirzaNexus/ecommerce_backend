@@ -48,8 +48,8 @@ export class Product extends BaseEntity {
   @Index()
   slug!: string;
 
-  @Column({ type: 'varchar' })
-  imageUrl!: string;
+  @Column({ type: 'varchar', nullable: true })
+  imageUrl?: string;
 
   @OneToMany(() => Variant, (variant) => variant.product)
   variants!: Variant[];

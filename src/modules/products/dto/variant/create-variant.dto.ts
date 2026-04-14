@@ -6,10 +6,10 @@ import {
   IsOptional,
   ValidateNested,
 } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { plainToInstance, Transform, Type } from 'class-transformer';
 
 // Dimensions ke liye choti class
-class DimensionsDto {
+export class DimensionsDto {
   @Transform(({ value }) => Number(value))
   @IsNumber({}, { message: 'Height must be a number' })
   height!: number;
@@ -50,8 +50,9 @@ export class VariantAttributesDto {
 }
 
 export class CreateVariantDto {
+  @IsOptional()
   @IsUUID('4', { message: 'Product ID must be a valid UUID' })
-  productId!: string;
+  productId?: string;
 
   @IsString({ message: 'SKU must be a string' })
   sku!: string;
@@ -72,9 +73,10 @@ export class CreateVariantDto {
 
   @IsOptional()
   @ValidateNested()
-  @Type(() => VariantAttributesDto) // Is se attributes ke andar ki fields validate hongi
-  @Transform(({ value }) =>
-    typeof value === 'string' ? JSON.parse(value) : value,
-  )
+  @Type(() => VariantAttributesDto)
+  @Transform(({ value }) => {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    return plainToInstance(VariantAttributesDto, parsed);
+  })
   attributes?: VariantAttributesDto;
 }

@@ -12,7 +12,7 @@ import {
 } from 'class-validator';
 
 import { ProductStatus } from '../enums/product-status.enum';
-import { Type, Transform } from 'class-transformer';
+import { Type, Transform, plainToInstance } from 'class-transformer';
 import { CreateVariantDto } from './variant/create-variant.dto';
 
 export class CreateProductDto {
@@ -54,8 +54,9 @@ export class CreateProductDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateVariantDto)
-  @Transform(({ value }) =>
-    typeof value === 'string' ? JSON.parse(value) : value,
-  )
+  @Transform(({ value }) => {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    return plainToInstance(CreateVariantDto, parsed);
+  })
   variants!: CreateVariantDto[];
 }

@@ -66,6 +66,13 @@ export class ProductService {
       throw new BadRequestException('At least one variant is required');
     }
 
+    const variantFilesCount = variantFiles?.length || 0;
+    if (variantFilesCount !== dto.variants.length) {
+      throw new BadRequestException(
+        `Each variant must have an image. Expected ${dto.variants.length} images, but received ${variantFilesCount}.`,
+      );
+    }
+
     const productImageUrl = await this.mediaService.uploadImage(
       mainFile,
       'products',
@@ -95,7 +102,7 @@ export class ProductService {
       const productEntity = manager.create(Product, {
         ...dto,
         slug,
-        productImageUrl,
+        imageUrl: productImageUrl,
         isPublished: false,
       });
       const savedProduct = await this.productRepo.create(
@@ -232,30 +239,6 @@ export class ProductService {
     });
   }
 
-  async togglePublish(id: string): Promise<ProductResponseDto> {
-    return await this.dataSource.transaction(async (manager) => {
-      const product = await this.productRepo.findById(id, manager);
-
-      if (!product) {
-        throw new NotFoundException('Product not found');
-      }
-
-      if (product.deletedAt) {
-        throw new BadRequestException('Cannot publish deleted product');
-      }
-      await this.productRepo.updatePartial(
-        id,
-        {
-          isPublished: !product.isPublished,
-        },
-        manager,
-      );
-
-      const updatedProduct = await this.productRepo.findById(id, manager);
-      return ProductResponseDto.fromEntity(updatedProduct!);
-    });
-  }
-
   async toggleStatus(id: string): Promise<ProductResponseDto> {
     return await this.dataSource.transaction(async (manager) => {
       const product = await this.productRepo.findById(id, manager);
@@ -272,7 +255,16 @@ export class ProductService {
           ? ProductStatus.PUBLISHED
           : ProductStatus.DRAFT;
 
-      await this.productRepo.updateStatus(id, newStatus, manager);
+      const isPublished = newStatus === ProductStatus.PUBLISHED;
+
+      await this.productRepo.updatePartial(
+        id,
+        {
+          status: newStatus,
+          isPublished: isPublished,
+        },
+        manager,
+      );
       const updatedProduct = await this.productRepo.findById(id, manager);
       return ProductResponseDto.fromEntity(updatedProduct!);
     });

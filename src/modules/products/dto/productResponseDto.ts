@@ -12,7 +12,7 @@ export class ProductResponseDto {
   status!: ProductStatus;
   basePrice?: number;
   slug!: string;
-  imageUrl!: string;
+  imageUrl?: string;
   createdAt!: Date;
   updatedAt!: Date;
   variants?: VariantResponseDto[];

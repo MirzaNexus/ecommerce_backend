@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import { mergeAttributes } from '../../utils/normalizeAttributes';
+import { deepMerge } from '../../utils/normalizeAttributes';
 import { VariantRepository } from '../../repositories/variant.repository';
 import { CreateVariantDto } from '../../dto/variant/create-variant.dto';
 import { Variant } from '../../entities/variant.entity';
@@ -13,6 +13,7 @@ import { ProductRepository } from '../../repositories/product.repositry';
 import { UpdateVariantDto } from '../../dto/variant/update-variant.dto';
 import { InventoryService } from '../inventory/inventory.service';
 import { MediaService } from 'src/modules/media/media.service';
+import { VariantResponseDto } from '../../dto/variant/variant.response.dto';
 
 @Injectable()
 export class VariantService {
@@ -30,11 +31,17 @@ export class VariantService {
     manager?: EntityManager,
   ) {
     let uploadedImageUrl = dto.imageUrl;
-    if (file) {
-      uploadedImageUrl = await this.mediaService.uploadImage(file, 'variants');
+    if (!file) {
+      throw new BadRequestException('Variant image is required');
     }
+    uploadedImageUrl = await this.mediaService.uploadImage(file, 'variants');
 
     const executeLogic = async (m: EntityManager) => {
+      if (!dto.productId) {
+        throw new BadRequestException(
+          'Product ID is required for variant creation',
+        );
+      }
       const product = await this.productRepo.findById(dto.productId, m);
       if (!product) {
         throw new BadRequestException('Product does not exist');
@@ -70,9 +77,13 @@ export class VariantService {
         m,
       );
 
+      const finalVariant = await this.variantRepo.findById(saved.id, m, [
+        'inventory',
+      ]);
+
       return {
         message: 'Variant created successfully',
-        data: saved,
+        data: VariantResponseDto.fromEntity(finalVariant!),
       };
     };
 
@@ -114,27 +125,29 @@ export class VariantService {
         throw new BadRequestException('Price cannot be negative');
       }
 
-      const mergedAttributes = mergeAttributes(
-        variant.attributes,
-        dto.attributes,
-      );
+      const mergedAttributes = dto.attributes
+        ? deepMerge(variant.attributes, dto.attributes)
+        : variant.attributes;
 
-      const safeUpdate: Partial<Variant> = {
-        ...(dto.sku && { sku: dto.sku }),
+      const updatedEntity: Variant = {
+        ...variant,
+        ...(dto.sku !== undefined && { sku: dto.sku }),
         ...(dto.price !== undefined && { price: dto.price }),
-        ...(dto.attributes && { attributes: mergedAttributes }),
+        attributes: mergedAttributes,
         imageUrl: uploadedImageUrl || dto.imageUrl || variant.imageUrl,
       };
-      await this.variantRepo.updatePartial(id, safeUpdate, manager);
+      await this.variantRepo.create(updatedEntity, manager); // Using save for partial update
 
-      if (dto.stock !== undefined) {
+      if (dto.stock !== undefined && dto.stock !== null) {
         await this.inventoryService.updateStock(id, dto.stock, manager);
       }
 
-      const updated = await this.variantRepo.findById(id, manager);
+      const updated = await this.variantRepo.findById(id, manager, [
+        'inventory',
+      ]);
       return {
         message: 'Variant and inventory updated successfully',
-        data: updated,
+        data: VariantResponseDto.fromEntity(updated!),
       };
     });
   }

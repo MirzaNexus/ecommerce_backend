@@ -16,13 +16,29 @@ async function bootstrap() {
 
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
       transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: false,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
       exceptionFactory: (errors) => {
-        const messages = errors.map((err) =>
-          Object.values(err.constraints || {}).join(', '),
-        );
+        const getErrors = (errorList: any[]): string[] => {
+          let messages: string[] = [];
+          errorList.forEach((err) => {
+            if (err.constraints) {
+              const constraintValues = Object.values(
+                err.constraints,
+              ) as string[];
+              messages.push(...constraintValues);
+            }
+            if (err.children && err.children.length > 0) {
+              messages.push(...getErrors(err.children));
+            }
+          });
+          return messages;
+        };
+        const messages = getErrors(errors);
 
         return new HttpException(
           {
