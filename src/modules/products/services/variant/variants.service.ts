@@ -31,10 +31,9 @@ export class VariantService {
     manager?: EntityManager,
   ) {
     let uploadedImageUrl = dto.imageUrl;
-    if (!file) {
-      throw new BadRequestException('Variant image is required');
+    if (file) {
+      uploadedImageUrl = await this.mediaService.uploadImage(file, 'variants');
     }
-    uploadedImageUrl = await this.mediaService.uploadImage(file, 'variants');
 
     const executeLogic = async (m: EntityManager) => {
       if (!dto.productId) {
