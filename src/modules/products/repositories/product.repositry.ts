@@ -170,8 +170,14 @@ export class ProductRepository {
       });
     }
 
-    const page = Math.max(query.page ?? 1, 1);
-    const limit = Math.max(query.limit ?? 12, 1);
+    // Sorting Logic (Agar frontend se sortBy aa raha ho)
+    if (query.sortBy === 'price_asc') qb.orderBy('variants.price', 'ASC');
+    else if (query.sortBy === 'price_desc')
+      qb.orderBy('variants.price', 'DESC');
+    else qb.orderBy('product.createdAt', 'DESC');
+
+    const page = Math.max(query.page || 1, 1);
+    const limit = Math.max(query.limit || 12, 1);
     qb.skip((page - 1) * limit).take(limit);
 
     return await qb.getManyAndCount();
