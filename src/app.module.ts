@@ -9,6 +9,7 @@ import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { ProductsModule } from './modules/products/products.module';
 import { MediaModule } from './modules/media/media.module';
+import { OrderModule } from './modules/order/order.module';
 @Module({
   imports: [
     ConfigModule,
@@ -18,6 +19,7 @@ import { MediaModule } from './modules/media/media.module';
     AuthModule,
     ProductsModule,
     MediaModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -296,4 +296,11 @@ export class ProductService {
       },
     };
   }
+
+  async findById(id: string, manager?: EntityManager) {
+    return this.productRepo.findById(id, manager, [
+      'variants',
+      'variants.inventory',
+    ]);
+  }
 }

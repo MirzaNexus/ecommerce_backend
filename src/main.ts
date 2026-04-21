@@ -7,13 +7,15 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+  });
   app.enableCors({
     origin: ['http://localhost:3000'], // tumhara frontend URL
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true, // cookies/auth
   });
-
+  app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,

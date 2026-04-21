@@ -54,4 +54,24 @@ export class InventoryRepository {
   ): Promise<void> {
     await this.repo(manager).update({ variantId }, { deletedAt: new Date() });
   }
+
+  async decrementStock(
+    variantId: string,
+    quantity: number,
+    manager: EntityManager,
+  ): Promise<void> {
+    await manager
+      .getRepository(Inventory)
+      .decrement({ variantId }, 'stock', quantity);
+  }
+
+  async incrementStock(
+    variantId: string,
+    quantity: number,
+    manager: EntityManager,
+  ): Promise<void> {
+    await manager
+      .getRepository(Inventory)
+      .increment({ variantId }, 'stock', quantity); // Ensure 'stock' column name is correct
+  }
 }

@@ -70,4 +70,22 @@ export class InventoryService {
   async deleteInventoryByVariant(variantId: string, manager: EntityManager) {
     await this.inventoryRepo.softDeleteByVariantId(variantId, manager);
   }
+
+  async decreaseStock(
+    variantId: string,
+    quantity: number,
+    manager: EntityManager,
+  ): Promise<void> {
+    // Bilkul wahi pattern: Direct repository method ko call kar raha hai
+    await this.inventoryRepo.decrementStock(variantId, quantity, manager);
+  }
+
+  async increaseStock(
+    variantId: string,
+    quantity: number,
+    manager: EntityManager,
+  ): Promise<void> {
+    // Direct repository method ko call
+    await this.inventoryRepo.incrementStock(variantId, quantity, manager);
+  }
 }

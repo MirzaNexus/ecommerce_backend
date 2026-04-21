@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { Repository, EntityManager, IsNull } from 'typeorm';
+import { Repository, EntityManager, IsNull, In } from 'typeorm';
 import { Variant } from '../entities/variant.entity';
+import { Inventory } from '../entities/inventory.entity';
 
 @Injectable()
 export class VariantRepository {
@@ -72,6 +73,26 @@ export class VariantRepository {
       order: {
         createdAt: 'DESC',
       },
+    });
+  }
+
+  async findByIdForUpdate(id: string, manager: EntityManager) {
+    return manager
+      .getRepository(Variant) // Entity class ka naam
+      .createQueryBuilder('variant') // Alias (aap kuch bhi rakh saktay hain, 'variant' standard hai)
+      .setLock('pessimistic_write')
+      .leftJoinAndSelect('variant.inventory', 'inventory') // 'variant' alias hai aur 'inventory' class property hai
+      .where('variant.id = :id', { id })
+      .getOne();
+  }
+
+  async findManyWithInventory(
+    ids: string[],
+    manager?: EntityManager,
+  ): Promise<Variant[]> {
+    return await this.repo(manager).find({
+      where: { id: In(ids) },
+      relations: ['inventory', 'product'],
     });
   }
 }

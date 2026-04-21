@@ -37,5 +37,6 @@ import { VariantController } from './controllers/variant/variant.controller';
     VariantService,
     InventoryService,
   ],
+  exports: [ProductService, VariantService, InventoryService],
 })
 export class ProductsModule {}

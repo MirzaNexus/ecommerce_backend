@@ -169,4 +169,16 @@ export class VariantService {
       ? await runner(manager)
       : await this.dataSource.transaction(runner);
   }
+
+  async findByIdForUpdate(id: string, manager: EntityManager) {
+    return this.variantRepo.findByIdForUpdate(id, manager);
+  }
+
+  async getVariantsForCheckout(
+    ids: string[],
+    manager?: EntityManager,
+  ): Promise<Variant[]> {
+    // Direct repository method ko call kar raha hai
+    return await this.variantRepo.findManyWithInventory(ids, manager);
+  }
 }
