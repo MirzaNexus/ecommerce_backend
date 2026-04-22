@@ -69,7 +69,7 @@ export class PaymentService {
         },
         quantity: item.quantity,
       })),
-      success_url: `${process.env.FRONTEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${process.env.FRONTEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID&orderId=${order.id}`,
       cancel_url: `${process.env.FRONTEND_URL}/payment-failed`,
       metadata: { orderId: order.id },
     });

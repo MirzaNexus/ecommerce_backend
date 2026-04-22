@@ -26,7 +26,23 @@ export class OrderRepository {
   ): Promise<Order | null> {
     return await this.repo(manager).findOne({
       where: { id, userId },
+      relations: ['items', 'user'],
+    });
+  }
+
+  async findUserOrders(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<[Order[], number]> {
+    const skip = (page - 1) * limit;
+
+    return await this.repo().findAndCount({
+      where: { userId },
       relations: ['items'],
+      order: { createdAt: 'DESC' }, // Latest order hamesha top par
+      take: limit,
+      skip: skip,
     });
   }
 

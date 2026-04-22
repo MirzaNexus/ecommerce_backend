@@ -19,6 +19,7 @@ import { AddressTsService } from 'src/modules/user/services/address/user-address
 import { OrderStatus } from '../enums/order-status.enum';
 import { PaymentStatus } from '../enums/payment-status.enum';
 import { InventoryService } from 'src/modules/products/services/inventory/inventory.service';
+import { GetUserOrdersQueryDto } from '../dto/buyers-orders-query.dto';
 
 @Injectable()
 export class OrderService {
@@ -221,6 +222,34 @@ export class OrderService {
     const order = await this.orderRepo.findById(orderId, userId);
     if (!order) throw new NotFoundException('Order not found');
     return order;
+  }
+
+  // order.service.ts
+  async getMyOrders(userId: string, query: GetUserOrdersQueryDto) {
+    const { page, limit } = query;
+    const [orders, total] = await this.orderRepo.findUserOrders(
+      userId,
+      page,
+      limit,
+    );
+
+    return {
+      items: orders.map((order) => ({
+        id: order.id,
+        totalAmount: order.totalAmount,
+        status: order.status,
+        createdAt: order.createdAt,
+        itemCount: order.items.length,
+        firstItemName: order.items[0]?.productName || 'Order',
+      })),
+      meta: {
+        totalItems: total,
+        itemCount: orders.length,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
+    };
   }
 
   // Admin methods like getAdminOrders, updateStatus can be implemented similarly with appropriate guards and logic

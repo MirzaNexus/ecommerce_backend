@@ -6,6 +6,7 @@ import {
   Param,
   UseGuards,
   Query,
+  Req,
   Patch,
   Request,
   ParseUUIDPipe,
@@ -18,6 +19,7 @@ import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guards';
 import { RolesGuard } from 'src/modules/auth/guards/role.guard';
 import { OrderStatus } from '../enums/order-status.enum';
 import { UpdateOrderDto } from '../dto/update-order.dto';
+import { GetUserOrdersQueryDto } from '../dto/buyers-orders-query.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.BUYER, UserRole.ADMIN)
@@ -30,6 +32,12 @@ export class OrderController {
   async checkout(@Request() req: any, @Body() dto: CreateOrderDto) {
     // req.user.id is extracted from your JWT/Auth Guard
     return await this.orderService.checkout(req.user.id, dto);
+  }
+
+  @Get('my-orders')
+  async getMyOrders(@Req() req: any, @Query() query: GetUserOrdersQueryDto) {
+    const userId = req.user.id;
+    return await this.orderService.getMyOrders(userId, query);
   }
 
   @Get(':id')
