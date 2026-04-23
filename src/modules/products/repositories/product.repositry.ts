@@ -139,6 +139,17 @@ export class ProductRepository {
       .leftJoinAndSelect('product.category', 'category')
       // Join variants taake hum unpar filter laga saken
       .innerJoinAndSelect('product.variants', 'variants')
+
+      .leftJoin(
+        'order_items',
+        'orderItems',
+        'orderItems.productVariantId = variants.id',
+      )
+
+      // 🟢 Step 2: Join Order Table (Exact Table Name 'orders')
+      // Taake hum sirf "Successful" orders ka data utha sakein
+      .leftJoin('orders', 'parentOrder', 'orderItems.orderId = parentOrder.id')
+
       .where('product.status = :status', { status: ProductStatus.PUBLISHED })
       .andWhere('product.deletedAt IS NULL');
 
@@ -174,7 +185,15 @@ export class ProductRepository {
     if (query.sortBy === 'price_asc') qb.orderBy('variants.price', 'ASC');
     else if (query.sortBy === 'price_desc')
       qb.orderBy('variants.price', 'DESC');
-    else qb.orderBy('product.createdAt', 'DESC');
+    else if (query.sortBy === 'trending') {
+      qb.addSelect('SUM(COALESCE(orderItems.quantity, 0))', 'total_sales') // Alias 'total_sales' define kiya
+        .groupBy('product.id')
+        .addGroupBy('variants.id')
+        .addGroupBy('category.id')
+        // 🟢 FIX: Directly alias name use karein, SUM function dobara nahi likhna
+        .orderBy('total_sales', 'DESC')
+        .addOrderBy('product.createdAt', 'DESC');
+    } else qb.orderBy('product.createdAt', 'DESC');
 
     const page = Math.max(query.page || 1, 1);
     const limit = Math.max(query.limit || 12, 1);
