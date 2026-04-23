@@ -146,12 +146,16 @@ export class ProductRepository {
         'orderItems.productVariantId = variants.id',
       )
 
-      // 🟢 Step 2: Join Order Table (Exact Table Name 'orders')
-      // Taake hum sirf "Successful" orders ka data utha sakein
       .leftJoin('orders', 'parentOrder', 'orderItems.orderId = parentOrder.id')
 
       .where('product.status = :status', { status: ProductStatus.PUBLISHED })
       .andWhere('product.deletedAt IS NULL');
+    if (query.categoryId) {
+      qb.andWhere(
+        '(product.categoryId = :categoryId OR category.parentId = :categoryId)',
+        { categoryId: query.categoryId },
+      );
+    }
 
     if (query.color) {
       qb.andWhere("LOWER(variants.attributes->>'color') = LOWER(:color)", {
