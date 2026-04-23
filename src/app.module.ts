@@ -10,6 +10,7 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { ProductsModule } from './modules/products/products.module';
 import { MediaModule } from './modules/media/media.module';
 import { OrderModule } from './modules/order/order.module';
+import { NotificationModule } from './modules/notification/notification.module';
 @Module({
   imports: [
     ConfigModule,
@@ -20,6 +21,7 @@ import { OrderModule } from './modules/order/order.module';
     ProductsModule,
     MediaModule,
     OrderModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
