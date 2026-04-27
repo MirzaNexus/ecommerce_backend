@@ -1,27 +1,68 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { NewsletterSubscription } from '../entities/notification.entity';
-import { DataSource, Repository } from 'typeorm';
 
 @Injectable()
-export class NewsletterRepository extends Repository<NewsletterSubscription> {
-  constructor(private dataSource: DataSource) {
-    super(NewsletterSubscription, dataSource.createEntityManager());
-  }
+export class NewsletterRepository {
+  constructor(
+    @InjectRepository(NewsletterSubscription)
+    private readonly repo: Repository<NewsletterSubscription>,
+  ) {}
 
   async findByEmail(email: string) {
-    return this.findOne({ where: { email } });
+    return await this.repo.findOne({ where: { email } });
+  }
+
+  async find(options: any) {
+    return await this.repo.find(options);
+  }
+
+  async update(criteria: any, partialEntity: any) {
+    return await this.repo.update(criteria, partialEntity);
   }
 
   async upsertSubscription(data: Partial<NewsletterSubscription>) {
-    const existing = await this.findByEmail(data.email!);
+    // 1. Check if record exists by email
+    const existing = await this.repo.findOne({
+      where: { email: data.email },
+    });
+
     if (existing) {
-      Object.assign(existing, { ...data, isSubscribed: true });
-      return await this.save(existing);
+      // 🟢 Logic: ID preservation & Smart Merge
+      const updateData = {
+        ...data,
+        isSubscribed: true,
+        // Existing userId ko bacha kar rakhna agar naya data null ho
+        userId: data.userId || existing.userId,
+      };
+
+      Object.assign(existing, updateData);
+      return await this.repo.save(existing);
     }
-    return await this.save(this.create(data));
+
+    // 2. Agar naya user hai toh create karein
+    const newSub = this.repo.create({
+      ...data,
+      isSubscribed: true,
+    });
+
+    return await this.repo.save(newSub);
   }
 
   async linkUserToSubscription(email: string, userId: string) {
-    return await this.update({ email }, { userId });
+    // Identity sync ke liye update query
+    return await this.repo.update({ email }, { userId });
+  }
+  async deactivateInvalidTokens(tokens: string[]): Promise<void> {
+    await this.repo
+      .createQueryBuilder()
+      .update()
+      .set({
+        fcmToken: null,
+        isSubscribed: false,
+      })
+      .where('fcmToken IN (:...tokens)', { tokens })
+      .execute();
   }
 }

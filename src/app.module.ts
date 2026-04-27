@@ -11,9 +11,12 @@ import { ProductsModule } from './modules/products/products.module';
 import { MediaModule } from './modules/media/media.module';
 import { OrderModule } from './modules/order/order.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { FirebaseAdminModule } from './common/firebase/firebase-admin.module';
+
 @Module({
   imports: [
     ConfigModule,
+    FirebaseAdminModule,
     DatabaseModule,
     EventEmitterModule.forRoot(),
     UserModule,
@@ -22,6 +25,15 @@ import { NotificationModule } from './modules/notification/notification.module';
     MediaModule,
     OrderModule,
     NotificationModule,
+    EventEmitterModule.forRoot({
+      wildcard: false,
+      delimiter: '.',
+      newListener: false,
+      removeListener: false,
+      maxListeners: 10,
+      verboseMemoryLeak: false,
+      ignoreErrors: false,
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],

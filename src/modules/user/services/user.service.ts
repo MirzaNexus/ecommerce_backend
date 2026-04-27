@@ -11,17 +11,19 @@ import { UserRepository } from '../repositories/user.repository';
 import { AuthService } from 'src/modules/auth/services/auth.service';
 import { UpdateProfileDto } from '../dto/update-user.dto';
 import { EntityManager } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly userRepo: UserRepository,
+    private readonly eventEmitter: EventEmitter2,
     @Inject(forwardRef(() => AuthService)) private authService: AuthService,
   ) {}
 
   async registerBuyer(dto: RegisterBuyerDto) {
-    return this.dataSource.transaction(async (manager) => {
+    const newUser = await this.dataSource.transaction(async (manager) => {
       const existingUser = await this.userRepo.findByEmail(dto.email, manager);
 
       if (existingUser) {
@@ -50,6 +52,13 @@ export class UserService {
         },
       };
     });
+
+    this.eventEmitter.emit('user.registered', {
+      email: newUser.data.email,
+      userId: newUser.data.userId,
+    });
+
+    return newUser;
   }
 
   async findByEmail(email: string, manager?: EntityManager) {
