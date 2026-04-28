@@ -27,6 +27,6 @@ import { forwardRef } from '@nestjs/common';
     AddressTsService,
     AdminUserService,
   ],
-  exports: [UserService],
+  exports: [UserService, AddressTsService],
 })
 export class UserModule {}

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AddressRepository } from '../../repositories/AddressRepository';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { UserAddress } from '../../entities/user-address.entity';
 import { CreateAddressDto } from '../../dto/create-user-address.dto';
 import { UpdateAddressDto } from '../../dto/update-user-address.dto';
@@ -74,5 +74,17 @@ export class AddressTsService {
       await this.addressRepo.setDefault(addressId, manager);
       return await this.addressRepo.update(addressId, {}, manager);
     });
+  }
+
+  async getAddressForOrder(
+    addressId: string,
+    userId: string,
+    manager?: EntityManager,
+  ): Promise<UserAddress> {
+    const address = await this.addressRepo.findOne(addressId, userId, manager);
+    if (!address) {
+      throw new NotFoundException('Selected address not found in your profile');
+    }
+    return address;
   }
 }

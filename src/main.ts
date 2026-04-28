@@ -7,22 +7,40 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+  });
   app.enableCors({
     origin: ['http://localhost:3000'], // tumhara frontend URL
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true, // cookies/auth
   });
-
+  app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
       transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: false,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
       exceptionFactory: (errors) => {
-        const messages = errors.map((err) =>
-          Object.values(err.constraints || {}).join(', '),
-        );
+        const getErrors = (errorList: any[]): string[] => {
+          let messages: string[] = [];
+          errorList.forEach((err) => {
+            if (err.constraints) {
+              const constraintValues = Object.values(
+                err.constraints,
+              ) as string[];
+              messages.push(...constraintValues);
+            }
+            if (err.children && err.children.length > 0) {
+              messages.push(...getErrors(err.children));
+            }
+          });
+          return messages;
+        };
+        const messages = getErrors(errors);
 
         return new HttpException(
           {
