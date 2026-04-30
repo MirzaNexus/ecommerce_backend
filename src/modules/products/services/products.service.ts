@@ -303,4 +303,27 @@ export class ProductService {
       'variants.inventory',
     ]);
   }
+
+  async getRelatedByCategory(
+    categoryId: string,
+    excludeId: string,
+    limit: number = 4,
+    offset: number = 0, // Offset helps the carousel move to the next set
+  ) {
+    return await this.productRepo.findRelatedByCategory(
+      categoryId,
+      excludeId,
+      limit,
+      offset,
+    );
+  }
+
+  async findAllForRecommendationSync(
+    manager?: EntityManager,
+  ): Promise<Product[]> {
+    return await this.productRepo.findAllActive(manager, [
+      'variants',
+      'variants.inventory',
+    ]);
+  }
 }

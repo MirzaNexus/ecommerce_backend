@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Repository, EntityManager, FindOptionsWhere, IsNull } from 'typeorm';
+import {
+  Repository,
+  EntityManager,
+  FindOptionsWhere,
+  IsNull,
+  Not,
+} from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GetBuyerProductsQueryDto } from '../dto/getBuyerProductQueryDto';
 import { Product } from '../entities/product.entity';
@@ -204,5 +210,42 @@ export class ProductRepository {
     qb.skip((page - 1) * limit).take(limit);
 
     return await qb.getManyAndCount();
+  }
+
+  async findRelatedByCategory(
+    categoryId: string,
+    excludeId: string,
+    limit: number,
+    offset: number,
+    manager?: EntityManager,
+  ): Promise<[Product[], number]> {
+    return await this.repo(manager).findAndCount({
+      where: {
+        category: { id: categoryId },
+        id: Not(excludeId), // Don't recommend the product currently being viewed
+        deletedAt: IsNull(),
+      },
+      relations: ['category'], // Add any relations your frontend needs (e.g., 'images')
+      take: limit, // How many to fetch
+      skip: offset, // How many to skip
+      order: {
+        createdAt: 'DESC', // Newest products first
+      },
+    });
+  }
+
+  async findAllActive(
+    manager?: EntityManager,
+    relations: string[] = [],
+  ): Promise<Product[]> {
+    const repo = manager ? manager.getRepository(Product) : this.repo();
+
+    return await repo.find({
+      where: {
+        isPublished: true,
+        deletedAt: IsNull(), // Ensure soft-deleted products aren't synced
+      },
+      relations: relations,
+    });
   }
 }
