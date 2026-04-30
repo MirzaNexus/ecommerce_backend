@@ -304,6 +304,10 @@ export class ProductService {
     ]);
   }
 
+  async getProductsForHydration(ids: string[]): Promise<Product[]> {
+    return this.productRepo.findByIdsWithDetails(ids);
+  }
+
   async getRelatedByCategory(
     categoryId: string,
     excludeId: string,

@@ -48,6 +48,50 @@ export class RecommendationService {
     private readonly indexer: RecommendationIndexer,
   ) {}
 
+  private createResponse(
+    items: any[],
+    total: number,
+    totalPages: number,
+    source: 'algolia' | 'fallback_db',
+    page: number,
+  ): RecommendationListResponseDto {
+    return {
+      items,
+      total,
+      totalPages,
+      source,
+      request_id: `req_${Date.now()}_${source}_p${page}`,
+    };
+  }
+
+  private mapProductToBuyerDto(product: any): any {
+    const prices = product.variants?.map((v: any) => Number(v.price)) || [];
+    const minPrice =
+      prices.length > 0 ? Math.min(...prices) : Number(product.basePrice);
+    const maxPrice =
+      prices.length > 0 ? Math.max(...prices) : Number(product.basePrice);
+
+    return {
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      description: product.description,
+      basePrice: Number(product.basePrice),
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+      imageUrl: product.imageUrl || '/placeholder-product.png',
+      categoryName: product.category?.name || 'Collection',
+      categoryId: product.categoryId,
+      variantCount: product.variants?.length || 0,
+      // Future safety ke liye metadata
+      inventoryStatus: product.variants?.some(
+        (v: any) => v.inventory?.stock > 0,
+      )
+        ? 'IN_STOCK'
+        : 'OUT_OF_STOCK',
+    };
+  }
+
   async getRecommendedProducts(
     productId: string,
     categoryId: string,
@@ -78,13 +122,26 @@ export class RecommendationService {
           },
         });
 
-      return {
-        items: hits.map((h: any) => this.mapAlgoliaHitToDto(h)),
-        total: nbHits ?? 0,
-        totalPages: nbPages ?? 0,
-        source: 'algolia',
-        request_id: `req_${Date.now()}_pg${page}`,
-      };
+      if (!hits || hits.length === 0) {
+        return this.createResponse([], 0, 0, 'algolia', page);
+      }
+
+      const productIds = hits.map((h: any) => h.objectID);
+      const fullProducts =
+        await this.productService.getProductsForHydration(productIds);
+
+      const hydratedItems = productIds
+        .map((id) => fullProducts.find((p) => p.id === id))
+        .filter((p) => !!p) // Safety: agar koi product DB se delete ho gaya ho
+        .map((p) => this.mapProductToBuyerDto(p));
+
+      return this.createResponse(
+        hydratedItems,
+        nbHits || 0,
+        nbPages || 0,
+        'algolia',
+        page,
+      );
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
@@ -174,14 +231,15 @@ export class RecommendationService {
     );
 
     const totalPages = Math.ceil(total / limit);
+    const hydratedItems = products.map((p) => this.mapProductToBuyerDto(p));
 
-    return {
-      items: products.map((p) => this.mapProductToDto(p)),
+    return this.createResponse(
+      hydratedItems,
       total,
-      totalPages: totalPages || 0,
-      source: 'fallback_db',
-      request_id: `fallback_${Date.now()}_p${page}`,
-    };
+      totalPages,
+      'fallback_db', // Source type update for tracking
+      page,
+    );
   }
 
   private async sendToAlgoliaInsights(dto: CreateRecommendationEventDto) {
@@ -311,7 +369,7 @@ export class RecommendationService {
       const indexName =
         this.configService.getOrThrow<string>('ALGOLIA_INDEX_NAME');
 
-      const { hits } = await this.algoliaClient.searchSingleIndex({
+      const { hits, nbHits } = await this.algoliaClient.searchSingleIndex({
         indexName: indexName,
         searchParams: {
           query: query,
@@ -324,7 +382,7 @@ export class RecommendationService {
 
       return {
         results: hits.map((h) => this.mapAlgoliaHitToDto(h)),
-        total: hits.length,
+        total: nbHits,
         query: query,
       };
     } catch (error) {

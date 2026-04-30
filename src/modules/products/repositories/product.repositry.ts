@@ -5,6 +5,7 @@ import {
   FindOptionsWhere,
   IsNull,
   Not,
+  In,
 } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GetBuyerProductsQueryDto } from '../dto/getBuyerProductQueryDto';
@@ -32,6 +33,18 @@ export class ProductRepository {
     return await this.repo(manager).findOne({
       where: { id, deletedAt: IsNull() },
       relations: relations,
+    });
+  }
+
+  async findByIdsWithDetails(
+    ids: string[],
+    manager?: EntityManager,
+  ): Promise<Product[]> {
+    if (ids.length === 0) return [];
+
+    return this.repo(manager).find({
+      where: { id: In(ids) },
+      relations: ['variants', 'variants.inventory', 'category'],
     });
   }
 
