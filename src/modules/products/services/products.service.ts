@@ -22,6 +22,8 @@ import { MediaService } from 'src/modules/media/media.service';
 import { GetBuyerProductsQueryDto } from '../dto/getBuyerProductQueryDto';
 import { PaginatedBuyerProductsDto } from '../dto/buyerProductResponseDto';
 import { BuyerProductResponseDto } from '../dto/buyerProductResponseDto';
+import { AlgoliaService } from 'src/modules/algolia/algolia.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ProductService {
@@ -31,6 +33,8 @@ export class ProductService {
     private readonly productRepo: ProductRepository,
     private readonly variantService: VariantService,
     private readonly mediaService: MediaService,
+    private readonly algoliaService: AlgoliaService,
+    private readonly configService: ConfigService,
   ) {}
 
   private async handleNestedCreation(
@@ -85,54 +89,89 @@ export class ProductService {
         variantImageUrls.push(url);
       }
     }
-    return await this.dataSource.transaction(async (manager) => {
-      const category = await this.categoryRepo.findById(
-        dto.categoryId,
-        manager,
-      );
-      if (!category) {
-        throw new BadRequestException('Category does not exist');
-      }
-      const slug = dto.slug ?? this.generateSlug(dto.name);
-      const existingProduct = await this.productRepo.findBySlug(slug, manager);
-      if (existingProduct) {
-        throw new ConflictException('Product slug already exists');
-      }
+    const finalProductDto = await this.dataSource.transaction(
+      async (manager) => {
+        const category = await this.categoryRepo.findById(
+          dto.categoryId,
+          manager,
+        );
+        if (!category) {
+          throw new BadRequestException('Category does not exist');
+        }
+        const slug = dto.slug ?? this.generateSlug(dto.name);
+        const existingProduct = await this.productRepo.findBySlug(
+          slug,
+          manager,
+        );
+        if (existingProduct) {
+          throw new ConflictException('Product slug already exists');
+        }
 
-      const productEntity = manager.create(Product, {
-        ...dto,
-        slug,
-        imageUrl: productImageUrl,
-        isPublished: false,
-      });
-      const savedProduct = await this.productRepo.create(
-        productEntity,
-        manager,
-      );
+        const productEntity = manager.create(Product, {
+          ...dto,
+          slug,
+          imageUrl: productImageUrl,
+          isPublished: false,
+        });
+        const savedProduct = await this.productRepo.create(
+          productEntity,
+          manager,
+        );
 
-      if (dto.variants && dto.variants.length > 0) {
-        for (let i = 0; i < dto.variants.length; i++) {
-          await this.handleNestedCreation(
-            savedProduct.id,
-            dto.variants[i],
-            manager,
-            variantImageUrls[i],
+        if (dto.variants && dto.variants.length > 0) {
+          for (let i = 0; i < dto.variants.length; i++) {
+            await this.handleNestedCreation(
+              savedProduct.id,
+              dto.variants[i],
+              manager,
+              variantImageUrls[i],
+            );
+          }
+        }
+
+        const finalProduct = await this.productRepo.findById(
+          savedProduct.id,
+          manager,
+          ['variants', 'variants.inventory', 'category'],
+        );
+        if (!finalProduct) {
+          throw new InternalServerErrorException(
+            'Product creation failed during final fetch',
           );
         }
-      }
+        return ProductResponseDto.fromEntity(finalProduct!);
+      },
+    );
 
-      const finalProduct = await this.productRepo.findById(
-        savedProduct.id,
-        manager,
-        ['variants', 'variants.inventory'],
+    try {
+      const totalStock =
+        finalProductDto.variants?.reduce((sum: number, variant: any) => {
+          return sum + (variant.inventory?.stock || variant.stock || 0);
+        }, 0) || 0;
+      // Algolia expects a specific format. Hum response DTO se data nikal kar bhejenge.
+      await this.algoliaService.saveObject(
+        this.configService.get<string>('ALGOLIA_INDEX_NAME') || 'poducts_index',
+        {
+          objectID: finalProductDto.id, // Database ID as Algolia Object ID (Idempotency)
+          name: finalProductDto.name,
+          basePrice: finalProductDto.basePrice,
+          imageUrl: finalProductDto.imageUrl,
+          category: finalProductDto.categoryName,
+          category_id: finalProductDto.categoryId, // Make sure DTO has this
+          isPublished: finalProductDto.isPublished,
+          stock: totalStock,
+        },
       );
-      if (!finalProduct) {
-        throw new InternalServerErrorException(
-          'Product creation failed during final fetch',
-        );
-      }
-      return ProductResponseDto.fromEntity(finalProduct!);
-    });
+
+      console.log(`✅ Product ${finalProductDto.name} synced to Algolia`);
+    } catch (error) {
+      console.error(
+        `❌ Algolia Sync Failed for Product ${finalProductDto.name}:`,
+        error,
+      );
+    }
+
+    return finalProductDto;
   }
 
   async updateProduct(
@@ -144,48 +183,90 @@ export class ProductService {
     if (file) {
       uploadedImageUrl = await this.mediaService.uploadImage(file, 'products');
     }
-    return await this.dataSource.transaction(async (manager) => {
-      const product = await this.productRepo.findById(id, manager);
-      if (!product) {
-        throw new NotFoundException('Product not found');
-      }
-      if (dto.categoryId) {
-        const category = await this.categoryRepo.findById(
-          dto.categoryId,
-          manager,
-        );
-        if (!category) throw new BadRequestException('Invalid category');
-      }
-
-      let finalSlug = dto.slug;
-
-      if (dto.name && !dto.slug) {
-        finalSlug = this.generateSlug(dto.name);
-      }
-
-      if (finalSlug) {
-        const existing = await this.productRepo.findBySlug(finalSlug, manager);
-        if (existing && existing.id !== id) {
-          throw new ConflictException(`Slug '${finalSlug}' already in use`);
+    const updatedProductDto = await this.dataSource.transaction(
+      async (manager) => {
+        const product = await this.productRepo.findById(id, manager);
+        if (!product) {
+          throw new NotFoundException('Product not found');
         }
-      }
+        if (dto.categoryId) {
+          const category = await this.categoryRepo.findById(
+            dto.categoryId,
+            manager,
+          );
+          if (!category) throw new BadRequestException('Invalid category');
+        }
 
-      const safeUpdate: Partial<Product> = {
-        ...(dto.name && { name: dto.name }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.categoryId && { categoryId: dto.categoryId }),
-        ...(dto.basePrice !== undefined && { basePrice: dto.basePrice }),
-        ...(finalSlug && { slug: finalSlug }),
-        imageUrl: uploadedImageUrl || dto.imageUrl || product.imageUrl,
-        ...(dto.status && { status: dto.status }),
-        updatedAt: new Date(),
-      };
+        let finalSlug = dto.slug;
 
-      await this.productRepo.updatePartial(id, safeUpdate, manager);
+        if (dto.name && !dto.slug) {
+          finalSlug = this.generateSlug(dto.name);
+        }
 
-      const updatedProduct = await this.productRepo.findById(id, manager);
-      return ProductResponseDto.fromEntity(updatedProduct!);
-    });
+        if (finalSlug) {
+          const existing = await this.productRepo.findBySlug(
+            finalSlug,
+            manager,
+          );
+          if (existing && existing.id !== id) {
+            throw new ConflictException(`Slug '${finalSlug}' already in use`);
+          }
+        }
+
+        const safeUpdate: Partial<Product> = {
+          ...(dto.name && { name: dto.name }),
+          ...(dto.description !== undefined && {
+            description: dto.description,
+          }),
+          ...(dto.categoryId && { categoryId: dto.categoryId }),
+          ...(dto.basePrice !== undefined && { basePrice: dto.basePrice }),
+          ...(finalSlug && { slug: finalSlug }),
+          imageUrl: uploadedImageUrl || dto.imageUrl || product.imageUrl,
+          ...(dto.status && { status: dto.status }),
+          updatedAt: new Date(),
+        };
+
+        await this.productRepo.updatePartial(id, safeUpdate, manager);
+
+        const updatedProduct = await this.productRepo.findById(id, manager, [
+          'category',
+          'variants',
+          'variants.inventory',
+        ]);
+        return ProductResponseDto.fromEntity(updatedProduct!);
+      },
+    );
+
+    try {
+      const totalStock =
+        updatedProductDto.variants?.reduce((sum: number, variant: any) => {
+          return sum + (variant.inventory?.stock || variant.stock || 0);
+        }, 0) || 0;
+
+      await this.algoliaService.saveObject(
+        this.configService.get<string>('ALGOLIA_INDEX_NAME') ||
+          'products_index',
+        {
+          objectID: updatedProductDto.id, // Database ID as Algolia Object ID (Idempotency)
+          name: updatedProductDto.name,
+          basePrice: updatedProductDto.basePrice,
+          imageUrl: updatedProductDto.imageUrl,
+          category: updatedProductDto.categoryName,
+          category_id: updatedProductDto.categoryId, // Make sure DTO has this
+          isPublished: updatedProductDto.isPublished,
+          stock: totalStock,
+        },
+      );
+
+      console.log(`✅ Product ${updatedProductDto.name} synced to Algolia`);
+    } catch (error) {
+      console.error(
+        `❌ Algolia Sync Failed for Product ${updatedProductDto.name}:`,
+        error,
+      );
+    }
+
+    return updatedProductDto;
   }
 
   async getAllProductsAdmin(
@@ -222,7 +303,7 @@ export class ProductService {
   }
 
   async deleteProduct(id: string): Promise<{ message: string }> {
-    return await this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const product = await this.productRepo.findById(id, manager, [
         'variants',
       ]);
@@ -237,37 +318,84 @@ export class ProductService {
 
       return { message: 'Product and all associated data moved to trash' };
     });
+    try {
+      await this.algoliaService.deleteObject(
+        this.configService.get<string>('ALGOLIA_INDEX_NAME') || '',
+        id,
+      );
+
+      console.log(`🗑️ Product removed from Algolia index`);
+    } catch (error) {
+      console.error(`⚠️ Failed to remove Product from Algolia:`, error);
+    }
+    return result;
   }
 
   async toggleStatus(id: string): Promise<ProductResponseDto> {
-    return await this.dataSource.transaction(async (manager) => {
-      const product = await this.productRepo.findById(id, manager);
+    const updatedProductDto = await this.dataSource.transaction(
+      async (manager) => {
+        const product = await this.productRepo.findById(id, manager);
 
-      if (!product) throw new NotFoundException('Product not found');
-      if (product.status === ProductStatus.ARCHIVED) {
-        throw new BadRequestException(
-          'Cannot toggle status of an archived product',
+        if (!product) throw new NotFoundException('Product not found');
+        if (product.status === ProductStatus.ARCHIVED) {
+          throw new BadRequestException(
+            'Cannot toggle status of an archived product',
+          );
+        }
+
+        const newStatus =
+          product.status === ProductStatus.DRAFT
+            ? ProductStatus.PUBLISHED
+            : ProductStatus.DRAFT;
+
+        const isPublished = newStatus === ProductStatus.PUBLISHED;
+
+        await this.productRepo.updatePartial(
+          id,
+          {
+            status: newStatus,
+            isPublished: isPublished,
+          },
+          manager,
         );
-      }
+        const updatedProduct = await this.productRepo.findById(id, manager, [
+          'category',
+          'variants',
+          'variants.inventory',
+        ]);
+        return ProductResponseDto.fromEntity(updatedProduct!);
+      },
+    );
 
-      const newStatus =
-        product.status === ProductStatus.DRAFT
-          ? ProductStatus.PUBLISHED
-          : ProductStatus.DRAFT;
+    try {
+      // Wahi stock calculation logic jo humne Indexer mein discuss kiya tha
+      const totalStock =
+        updatedProductDto.variants?.reduce((sum: number, variant: any) => {
+          return sum + (variant.inventory?.stock || variant.stock || 0);
+        }, 0) || 0;
 
-      const isPublished = newStatus === ProductStatus.PUBLISHED;
-
-      await this.productRepo.updatePartial(
-        id,
+      await this.algoliaService.saveObject(
+        this.configService.get<string>('ALGOLIA_INDEX_NAME') ||
+          'products_index',
         {
-          status: newStatus,
-          isPublished: isPublished,
+          objectID: updatedProductDto.id,
+          name: updatedProductDto.name,
+          basePrice: updatedProductDto.basePrice,
+          category: updatedProductDto.categoryName,
+          category_id: updatedProductDto.categoryId,
+          imageUrl: updatedProductDto.imageUrl,
+          isPublished: updatedProductDto.isPublished,
+          stock: totalStock,
         },
-        manager,
       );
-      const updatedProduct = await this.productRepo.findById(id, manager);
-      return ProductResponseDto.fromEntity(updatedProduct!);
-    });
+
+      console.log(
+        `🔄 Algolia Sync: ${updatedProductDto.name} is now ${updatedProductDto.status}`,
+      );
+    } catch (error) {
+      console.error(`❌ Algolia Toggle Sync Failed:`, error);
+    }
+    return updatedProductDto;
   }
 
   async archiveProduct(id: string): Promise<{ message: string }> {
@@ -285,7 +413,6 @@ export class ProductService {
     query: GetBuyerProductsQueryDto = {},
   ): Promise<PaginatedBuyerProductsDto> {
     const [products, total] = await this.productRepo.findAllBuyer(query);
-
     return {
       data: products.map((p) => BuyerProductResponseDto.fromEntity(p, query)),
       meta: {

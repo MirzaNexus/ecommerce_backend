@@ -14,6 +14,7 @@ export class RecommendationIndexer {
       name: product.name,
       basePrice: product.basePrice,
       category_id: product.categoryId,
+      category: product.category.name,
       imageUrl: product.imageUrl,
       isPublished: product.isPublished,
       stock: totalStock,

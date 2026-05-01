@@ -156,17 +156,13 @@ export class ProductRepository {
     const qb = this.repo(manager)
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
-      // Join variants taake hum unpar filter laga saken
       .innerJoinAndSelect('product.variants', 'variants')
-
       .leftJoin(
         'order_items',
         'orderItems',
         'orderItems.productVariantId = variants.id',
       )
-
       .leftJoin('orders', 'parentOrder', 'orderItems.orderId = parentOrder.id')
-
       .where('product.status = :status', { status: ProductStatus.PUBLISHED })
       .andWhere('product.deletedAt IS NULL');
     if (query.categoryId) {
@@ -213,7 +209,6 @@ export class ProductRepository {
         .groupBy('product.id')
         .addGroupBy('variants.id')
         .addGroupBy('category.id')
-        // 🟢 FIX: Directly alias name use karein, SUM function dobara nahi likhna
         .orderBy('total_sales', 'DESC')
         .addOrderBy('product.createdAt', 'DESC');
     } else qb.orderBy('product.createdAt', 'DESC');

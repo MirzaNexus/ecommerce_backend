@@ -51,8 +51,6 @@ export class ProductController {
     },
     @Body() dto: CreateProductDto,
   ) {
-    console.log('Received DTO:', dto); // 👈 Yeh line console par check karein
-    console.log('Type of variants:', typeof dto.variants);
     return this.service.createProduct(
       dto,
       files.mainImage?.[0],

@@ -17,9 +17,13 @@ import { InventoryController } from './controllers/inventory/inventory.controlle
 import { InventoryRepository } from './repositories/inventory.repository';
 import { VariantRepository } from './repositories/variant.repository';
 import { VariantController } from './controllers/variant/variant.controller';
+import { AlgoliaModule } from '../algolia/algolia.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Product, Category, Variant, Inventory])],
+  imports: [
+    TypeOrmModule.forFeature([Product, Category, Variant, Inventory]),
+    AlgoliaModule,
+  ],
 
   controllers: [
     ProductController,

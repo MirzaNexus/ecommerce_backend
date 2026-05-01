@@ -48,9 +48,12 @@ export class UserCategoryAffinityRepository {
   async getGlobalTopCategories(limit: number = 10): Promise<any[]> {
     return await this.repo()
       .createQueryBuilder('affinity')
+      .innerJoin('categories', 'cat', 'cat.id = affinity.category_id')
       .select('affinity.category_id', 'categoryId')
+      .addSelect('cat.name', 'categoryName')
       .addSelect('SUM(affinity.affinity_score)', 'totalScore')
       .groupBy('affinity.category_id')
+      .addGroupBy('cat.name') // Select kiya hua non-aggregate column yahan lazmi hai
       .orderBy('SUM(affinity.affinity_score)', 'DESC')
       .limit(limit)
       .getRawMany();
