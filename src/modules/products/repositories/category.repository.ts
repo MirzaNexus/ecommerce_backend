@@ -109,4 +109,14 @@ export class CategoryRepository {
 
     await repo.restore(id);
   }
+
+  async findAllActiveNames(
+    manager?: EntityManager,
+  ): Promise<Partial<Category>[]> {
+    const repo = this.getRepo(manager);
+    return await repo.find({
+      select: ['id', 'name'],
+      where: { deletedAt: IsNull() },
+    });
+  }
 }

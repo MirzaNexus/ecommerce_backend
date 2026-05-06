@@ -41,6 +41,6 @@ import { AlgoliaModule } from '../algolia/algolia.module';
     VariantService,
     InventoryService,
   ],
-  exports: [ProductService, VariantService, InventoryService],
+  exports: [ProductService, VariantService, InventoryService, CategoryService],
 })
 export class ProductsModule {}

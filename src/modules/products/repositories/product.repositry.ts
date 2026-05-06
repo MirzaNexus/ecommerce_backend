@@ -6,12 +6,14 @@ import {
   IsNull,
   Not,
   In,
+  ILike,
 } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GetBuyerProductsQueryDto } from '../dto/getBuyerProductQueryDto';
 import { Product } from '../entities/product.entity';
 import { GetAllProductsQueryDto } from '../dto/getAllProductsQueryDto';
 import { ProductStatus } from '../enums/product-status.enum';
+import { CreateShoppingIntentDto } from 'src/modules/guided-shopping/dto/shopping-intent.dto';
 
 @Injectable()
 export class ProductRepository {
@@ -255,5 +257,208 @@ export class ProductRepository {
       },
       relations: relations,
     });
+  }
+
+  // async searchByIntent(
+  //   intent: CreateShoppingIntentDto,
+  //   manager?: EntityManager,
+  // ): Promise<Product[]> {
+  //   const query = this.repo(manager)
+  //     .createQueryBuilder('product')
+  //     .leftJoinAndSelect('product.variants', 'variant')
+  //     .leftJoinAndSelect('variant.inventory', 'inventory')
+  //     .where('product.isPublished = :published', { published: true })
+  //     .andWhere('product.status = :status', { status: ProductStatus.PUBLISHED })
+  //     .andWhere('inventory.stock > :minStock', { minStock: 0 });
+
+  //   if (intent.categoryId) {
+  //     query.andWhere('product.categoryId = :catId', {
+  //       catId: intent.categoryId,
+  //     });
+  //   }
+
+  //   if (intent.budgetLimit) {
+  //     query.andWhere('variant.price <= :maxPrice', {
+  //       maxPrice: intent.budgetLimit,
+  //     });
+  //   }
+
+  //   if (intent.features) {
+  //     Object.entries(intent.features).forEach(([key, value]) => {
+  //       if (
+  //         value &&
+  //         typeof value === 'string' &&
+  //         value !== 'NOT_SPECIFIED' &&
+  //         key !== 'attributes'
+  //       ) {
+  //         query.andWhere(`variant.attributes->>'${key}' ILIKE :${key}`, {
+  //           [key]: `%${value}%`,
+  //         });
+  //       }
+  //     });
+  //   }
+
+  //   return await query.take(10).getMany();
+  // }
+
+  // async searchByIntent(
+  //   intent: CreateShoppingIntentDto,
+  //   manager?: EntityManager,
+  // ): Promise<Product[]> {
+  //   const query = this.repo(manager)
+  //     .createQueryBuilder('product')
+  //     .leftJoinAndSelect('product.variants', 'variant')
+  //     .leftJoinAndSelect('variant.inventory', 'inventory')
+  //     .where('product.isPublished = :published', { published: true })
+  //     .andWhere('product.status = :status', { status: ProductStatus.PUBLISHED })
+  //     // Use maybe manager to ensure consistency in transactions
+  //     .andWhere('inventory.stock > :minStock', { minStock: 0 });
+
+  //   // 1. Category Filter
+  //   if (intent.categoryId) {
+  //     query.andWhere('product.categoryId = :catId', {
+  //       catId: intent.categoryId,
+  //     });
+  //   }
+
+  //   // 2. Specific Product Identifier (High Priority)
+  //   if (intent.productIdentifier && intent.productIdentifier !== 'null') {
+  //     query.andWhere(
+  //       '(product.name ILIKE :pName OR product.slug ILIKE :pName OR product.description ILIKE :pName)',
+  //       { pName: `%${intent.productIdentifier}%` },
+  //     );
+  //   }
+
+  //   // 3. Budget Filter (With Safeguard)
+  //   if (intent.budgetLimit && intent.budgetLimit > 100) {
+  //     // Safeguard: budget must be realistic
+  //     query.andWhere('variant.price <= :maxPrice', {
+  //       maxPrice: intent.budgetLimit,
+  //     });
+  //   }
+
+  //   // 4. Brand & Features Filter
+  //   if (
+  //     intent.features?.color &&
+  //     !['NOT_SPECIFIED', 'null'].includes(intent.features.color)
+  //   ) {
+
+  //     if (
+  //       intent.productIdentifier?.toLowerCase() !==
+  //       intent.features.brand.toLowerCase()
+  //     ) {
+  //       query.andWhere(
+  //         "(variant.attributes->>'color' ILIKE :color OR product.description ILIKE :color)",
+  //         { color: `%${intent.features.color}%` },
+  //       );
+  //     }
+
+  //     // Attributes Loop
+  //     Object.entries(intent.features).forEach(([key, value]) => {
+  //       if (
+  //         value &&
+  //         typeof value === 'string' &&
+  //         // Yahan check lagayein ke value kaam ki hai ya nahi
+  //         !['NOT_SPECIFIED', 'null', 'undefined', 'any'].includes(value) &&
+  //         key !== 'attributes' &&
+  //         key !== 'brand'
+  //       ) {
+  //         query.andWhere(`variant.attributes->>'${key}' ILIKE :${key}`, {
+  //           [key]: `%${value}%`,
+  //         });
+  //       }
+  //     });
+  //   }
+
+  //   // Optimization: Order by latest or price
+  //   query.orderBy('product.createdAt', 'DESC');
+
+  //   return await query.take(10).getMany();
+  // }
+
+  async searchByIntent(
+    intent: CreateShoppingIntentDto,
+    manager?: EntityManager,
+  ): Promise<Product[]> {
+    const query = this.repo(manager)
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.variants', 'variant')
+      .leftJoinAndSelect('variant.inventory', 'inventory')
+      .where('product.isPublished = :published', { published: true })
+      .andWhere('product.status = :status', { status: ProductStatus.PUBLISHED })
+      .andWhere('inventory.stock > :minStock', { minStock: 0 });
+
+    // 1. Category Filter
+    if (intent.categoryId) {
+      query.andWhere('product.categoryId = :catId', {
+        catId: intent.categoryId,
+      });
+    }
+
+    // 2. Product Identifier (Specific Model Search)
+    if (intent.productIdentifier && intent.productIdentifier !== 'null') {
+      query.andWhere(
+        '(product.name ILIKE :pName OR product.slug ILIKE :pName OR product.description ILIKE :pName)',
+        { pName: `%${intent.productIdentifier}%` },
+      );
+    }
+
+    // 3. Budget Filter (Realistic Range)
+    if (intent.budgetLimit && intent.budgetLimit > 100) {
+      query.andWhere('variant.price <= :maxPrice', {
+        maxPrice: intent.budgetLimit,
+      });
+    }
+
+    // 4. Features & Attributes (Refined Logic)
+    if (intent.features) {
+      const { brand, attributes, ...restFeatures } = intent.features;
+
+      // Brand Check: Priority search in product name
+      if (brand && !['NOT_SPECIFIED', 'null'].includes(brand)) {
+        // Avoid redundancy if brand is already in the name search
+        if (intent.productIdentifier?.toLowerCase() !== brand.toLowerCase()) {
+          query.andWhere('product.name ILIKE :brand', { brand: `%${brand}%` });
+        }
+      }
+
+      // Dynamic Attributes Loop (Color, Size, etc.)
+      // Hum 'restFeatures' use karenge taake Brand exclude ho jaye automatically
+      Object.entries(restFeatures).forEach(([key, value]) => {
+        if (
+          value &&
+          typeof value === 'string' &&
+          !['NOT_SPECIFIED', 'null', 'undefined', 'any'].includes(value)
+        ) {
+          // Soft Match: Check in JSON attributes OR Product Description for better UX
+          query.andWhere(
+            `(variant.attributes->> :key_${key} ILIKE :val_${key} OR product.description ILIKE :val_${key})`,
+            {
+              [`key_${key}`]: key,
+              [`val_${key}`]: `%${value}%`,
+            },
+          );
+        }
+      });
+    }
+
+    query.orderBy('product.createdAt', 'DESC').take(10);
+
+    return await query.getMany();
+  }
+
+  async findByInquiry(
+    identifier: string,
+    manager?: EntityManager,
+  ): Promise<Product | null> {
+    return await this.repo(manager)
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.variants', 'variants')
+      .leftJoinAndSelect('variants.inventory', 'inventory')
+      .where('product.name ILIKE :id', { id: `%${identifier}%` })
+      .orWhere('product.slug ILIKE :id', { id: `%${identifier}%` })
+      .orWhere('variants.sku ILIKE :id', { id: `%${identifier}%` })
+      .getOne();
   }
 }

@@ -192,4 +192,9 @@ export class CategoryService {
       createdAt: category.createdAt,
     };
   }
+
+  async getCategoriesForAI() {
+    const categories = await this.categoryRepo.findAllActiveNames();
+    return categories.map((c) => `${c.name}: ${c.id}`).join(', ');
+  }
 }

@@ -24,6 +24,7 @@ import { PaginatedBuyerProductsDto } from '../dto/buyerProductResponseDto';
 import { BuyerProductResponseDto } from '../dto/buyerProductResponseDto';
 import { AlgoliaService } from 'src/modules/algolia/algolia.service';
 import { ConfigService } from '@nestjs/config';
+import { CreateShoppingIntentDto } from 'src/modules/guided-shopping/dto/shopping-intent.dto';
 
 @Injectable()
 export class ProductService {
@@ -456,5 +457,15 @@ export class ProductService {
       'variants',
       'variants.inventory',
     ]);
+  }
+
+  async getProductsByIntent(
+    intent: CreateShoppingIntentDto,
+  ): Promise<Product[]> {
+    return await this.productRepo.searchByIntent(intent);
+  }
+
+  async getInquiryData(identifier: string) {
+    return await this.productRepo.findByInquiry(identifier);
   }
 }
