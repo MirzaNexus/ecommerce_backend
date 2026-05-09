@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager, Repository, UpdateResult } from 'typeorm';
+import { EntityManager, Repository, UpdateResult, MoreThan } from 'typeorm';
 import { SessionMetadata } from '../enums/chatbot.enum';
 import { ChatSession } from '../entities/chat-session.entity';
 import { SessionStatus } from '../enums/chatbot.enum';
@@ -56,7 +56,11 @@ export class ChatSessionRepository {
     manager?: EntityManager,
   ): Promise<ChatSession | null> {
     return await this.repo(manager).findOne({
-      where: { buyerId, status: SessionStatus.ACTIVE },
+      where: {
+        buyerId,
+        status: SessionStatus.ACTIVE,
+        expiresAt: MoreThan(new Date()),
+      },
       order: { createdAt: 'DESC' },
     });
   }

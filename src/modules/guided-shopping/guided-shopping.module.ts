@@ -42,6 +42,7 @@ import { ChatbotAuditLogRepository } from './repositories/chatbot-audit-log.repo
 import { ChatbotAuditLogService } from './services/chatbot-audit-log.service';
 import { AdminAuditController } from './controllers/admin-audit.controller';
 import { GeminiProvider } from './provider/gemini.provider';
+import { ChatGateway } from './gateways/chat.gateway';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { GeminiProvider } from './provider/gemini.provider';
     AdminAuditController,
   ],
   providers: [
+    ChatGateway,
     GeminiProvider,
     ChatbotAuditLogService,
     ChatHistoryService,

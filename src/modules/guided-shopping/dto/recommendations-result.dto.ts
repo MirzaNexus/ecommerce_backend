@@ -23,6 +23,19 @@ export class CreateRecommendedProductDto {
   @IsString({ message: 'Reasoning must be provided' })
   @IsNotEmpty({ message: 'Reasoning cannot be empty' })
   reasoning!: string;
+
+  // --- New Optional Fields for Chat UI ---
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsNumber()
+  price?: number;
 }
 
 export class CreateRecommendationSessionDto {

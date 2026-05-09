@@ -19,10 +19,6 @@ export class RecommendationRepository {
     return (manager ?? this.manager).getRepository(RecommendedProduct);
   }
 
-  /**
-   * Saves a complete recommendation session including all ranked products.
-   * TypeORM cascade: true will handle the insertion of products automatically.
-   */
   async createSession(
     sessionData: Partial<RecommendationSession>,
     manager?: EntityManager,
@@ -47,6 +43,9 @@ export class RecommendationRepository {
           productId: p.productId,
           rankingScore: p.rankingScore,
           reasoning: p.reasoning,
+          name: p.name,
+          imageUrl: p.imageUrl,
+          price: p.price,
         }),
       );
 

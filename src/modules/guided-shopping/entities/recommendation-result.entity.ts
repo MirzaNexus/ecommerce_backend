@@ -66,6 +66,15 @@ export class RecommendedProduct {
   @Column({ type: 'text' })
   reasoning!: string;
 
+  @Column({ type: 'text', nullable: true })
+  name?: string;
+
+  @Column({ type: 'text', nullable: true })
+  imageUrl?: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  price?: number;
+
   @CreateDateColumn()
   createdAt!: Date;
 }

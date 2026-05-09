@@ -18,19 +18,49 @@ export class RecommendationOrchestratorService {
       return this.handleZeroResults(intentDto.sessionId);
     }
 
+    // const rankedItems = products
+    //   .filter((p) => p.id && p.variants?.length > 0)
+    //   .map((p) => this.rankProduct(p, intentDto));
+
+    // const sorted = lodash.orderBy(rankedItems, ['rankingScore'], ['desc']);
+
+    // // 3. Persistence: Data ko Entity structure mein map kar ke save karein
+    // const session = await this.recommendationRepo.createSession({
+    //   sessionId: intentDto.sessionId,
+    //   products: sorted.map((item) => ({
+    //     productId: item.productId,
+    //     rankingScore: item.rankingScore,
+    //     reasoning: item.reasoning,
+    //     name: item.name,
+    //     price: item.price,
+    //     imageUrl: item.imageUrl || null,
+    //   })) as any,
+    // });
+
     const rankedItems = products
       .filter((p) => p.id && p.variants?.length > 0)
-      .map((p) => this.rankProduct(p, intentDto));
+      .map((p) => {
+        const ranked = this.rankProduct(p, intentDto);
+        return {
+          ...ranked,
+          name: p.name,
+          imageUrl: p.imageUrl || null,
+          price: p.basePrice || p.variants[0]?.price || 0,
+        };
+      });
 
     const sorted = lodash.orderBy(rankedItems, ['rankingScore'], ['desc']);
 
-    // 3. Persistence: Data ko Entity structure mein map kar ke save karein
+    // 2. Persistence (Recommendation Session Table)
     const session = await this.recommendationRepo.createSession({
       sessionId: intentDto.sessionId,
       products: sorted.map((item) => ({
         productId: item.productId,
         rankingScore: item.rankingScore,
         reasoning: item.reasoning,
+        name: item.name,
+        price: item.price,
+        imageUrl: item.imageUrl,
       })) as any,
     });
 
@@ -102,7 +132,7 @@ export class RecommendationOrchestratorService {
       productId: product.id,
       rankingScore: Math.min(score, 100),
       reasoning: reasoningParts.join(' ') + '.',
-      // Frontend ke liye variant details bhi bhej sakte hain
+      name: product.name,
       price: price,
       imageUrl: product?.imageUrl || null,
     };

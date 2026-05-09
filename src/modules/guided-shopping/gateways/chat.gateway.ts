@@ -8,7 +8,15 @@ import { Socket } from 'socket.io';
 import { CreateChatMessageDto } from '../dto/chat-message.dto';
 import { GuidedShoppingOrchestrator } from '../services/guidedShoppingOrchestrator';
 
-@WebSocketGateway({ cors: true })
+@WebSocketGateway({
+  namespace: 'guided-shopping',
+  cors: {
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+  transports: ['websocket', 'polling'],
+})
 export class ChatGateway {
   constructor(private readonly orchestrator: GuidedShoppingOrchestrator) {}
 
