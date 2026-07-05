@@ -131,6 +131,7 @@ export class OrderService {
           totalAmount,
           addressSnapshot: finalAddress,
           idempotencyKey: dto.idempotencyKey,
+          chatbotSessionId: dto.chatbotSessionId ?? null,
         },
         manager,
       );

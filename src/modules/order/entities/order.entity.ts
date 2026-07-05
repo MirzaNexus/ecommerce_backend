@@ -81,6 +81,14 @@ export class Order {
   payments!: Payment[];
 
   @Index()
+  @Column({
+    type: 'uuid',
+    nullable: true,
+    comment: 'Links this order to a chatbot session for conversion tracking',
+  })
+  chatbotSessionId?: string | null;
+
+  @Index()
   @CreateDateColumn()
   createdAt!: Date;
 

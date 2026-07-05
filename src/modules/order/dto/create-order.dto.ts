@@ -41,4 +41,8 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   idempotencyKey?: string;
+
+  @IsOptional()
+  @IsUUID('4', { message: 'Chatbot session ID must be a valid UUID' })
+  chatbotSessionId?: string;
 }

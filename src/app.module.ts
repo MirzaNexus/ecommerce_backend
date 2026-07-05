@@ -12,10 +12,17 @@ import { MediaModule } from './modules/media/media.module';
 import { OrderModule } from './modules/order/order.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { FirebaseAdminModule } from './common/firebase/firebase-admin.module';
+import { RecommendationModule } from './modules/recommendation/recommendation.module';
+import { GuidedShoppingModule } from './modules/guided-shopping/guided-shopping.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
     ConfigModule,
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 300000,
+    }),
     FirebaseAdminModule,
     DatabaseModule,
     EventEmitterModule.forRoot(),
@@ -34,6 +41,8 @@ import { FirebaseAdminModule } from './common/firebase/firebase-admin.module';
       verboseMemoryLeak: false,
       ignoreErrors: false,
     }),
+    RecommendationModule,
+    GuidedShoppingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

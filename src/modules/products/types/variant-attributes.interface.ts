@@ -1,4 +1,3 @@
-// types/variant-attributes.interface.ts
 export interface InvariantAttributes {
   color?: string;
   size?: string;
